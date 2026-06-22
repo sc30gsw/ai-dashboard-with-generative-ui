@@ -15,16 +15,30 @@
     "type-check": "vp check --no-lint"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.85",
+    "@ai-sdk/react": "^3.0.210",
+    "@mcp-b/global": "^3.0.0",
+    "@mcp-b/react-webmcp": "^3.0.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@openuidev/react-headless": "^0.8.2",
+    "@openuidev/react-lang": "^0.2.6",
+    "@openuidev/react-ui": "^0.11.9",
+    "@tanstack/react-form": "^1.33.0",
     "@tanstack/react-router": "^1.170.16",
     "@tanstack/react-start": "^1.168.26",
+    "ai": "^6.0.208",
+    "better-result": "^2.9.2",
     "cnfast": "^0.0.6",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "zod": "^4.4.3",
+    "zustand": "^4.5.7"
   },
   "devDependencies": {
     "@rolldown/plugin-babel": "^0.2.3",
     "@tailwindcss/vite": "^4.3.1",
     "@tanstack/react-router-devtools": "^1.167.0",
+    "@types/node": "^26.0.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",

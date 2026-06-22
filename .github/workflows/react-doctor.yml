@@ -1,0 +1,34 @@
+name: React Doctor
+
+on:
+  # PR の変更ファイルをスキャンし、対象ブランチのマージベース基準で新規 issue のみを sticky コメントで報告
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  # main への push ごとにスコア推移を記録し、PR レビューをすり抜けた回帰を検知
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  statuses: write
+
+# 同一 PR(push 時はブランチ)で新しいコミットが来たら実行中のスキャンをキャンセルし、常に最新のみ表示
+concurrency:
+  group: react-doctor-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  react-doctor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # 変更ファイル差分(マージベース)算出のため全履歴を取得
+          fetch-depth: 0
+      # リポジトリルートをスキャン対象に指定(アプリは単一パッケージでルート直下)。
+      # blocking 未指定 = デフォルトの変更ファイルゲート(新規 warning/error で PR を fail)。
+      - uses: millionco/react-doctor@v2
+        with:
+          directory: .

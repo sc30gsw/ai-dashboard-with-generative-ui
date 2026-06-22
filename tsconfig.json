@@ -6,6 +6,11 @@
     "moduleResolution": "Bundler",
     "jsx": "react-jsx",
 
+    /* Paths */
+    "paths": {
+      "~/*": ["./src/*"]
+    },
+
     /* Strict */
     "strict": true,
     "libReplacement": true,

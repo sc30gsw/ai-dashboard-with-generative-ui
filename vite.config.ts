@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url";
+
 import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
@@ -11,6 +13,11 @@ const reactDoctorRules = {
 };
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      "~": fileURLToPath(new URL("./src", import.meta.url)),
+    },
+  },
   fmt: {
     ignorePatterns: ["**/routeTree.gen.ts"],
     sortImports: {
