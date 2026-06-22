@@ -119,7 +119,10 @@ function ChatLoadingIndicator() {
 }
 
 type ToolPartViewProps = {
-  onApprove: (id: string, approved: boolean) => void;
+  onApprove: (
+    id: NonNullable<ToolUIPart["approval"]>["id"],
+    approved: NonNullable<NonNullable<ToolUIPart["approval"]>["approved"]>,
+  ) => void;
   part: ToolUIPart;
 };
 
@@ -227,10 +230,22 @@ export function Chat() {
       messageText(lastMessage.parts).length === 0 &&
       toolPartsOf(lastMessage.parts).length === 0);
 
+  //? A pending approval is an unresolved tool call; the model cannot start a new
+  //? action until it is approved or cancelled, so block input while one is open.
+  const hasPendingApproval = messages.some(
+    (message) =>
+      message.role === "assistant" &&
+      toolPartsOf(message.parts).some((part) => part.state === "approval-requested"),
+  );
+
   const form = useForm({
     defaultValues: { body: "" },
     validators: { onChange: CreateMessageSchema },
     onSubmit: ({ value }) => {
+      if (hasPendingApproval) {
+        return;
+      }
+
       sendMessage({ text: value.body });
       form.reset();
     },
@@ -296,6 +311,12 @@ export function Chat() {
         {showLoading ? <ChatLoadingIndicator /> : null}
       </div>
 
+      {hasPendingApproval ? (
+        <p className="text-sm text-amber-700">
+          保留中の確認があります。先に「承認」または「キャンセル」を選んでください。
+        </p>
+      ) : null}
+
       <form
         aria-label="Send chat message"
         className="rounded-lg border border-zinc-200 bg-white p-3 shadow-sm"
@@ -328,9 +349,9 @@ export function Chat() {
                     <button
                       className={cn(
                         "min-h-12 rounded-md bg-black px-5 font-medium text-white outline-offset-2 focus-visible:outline-2 focus-visible:outline-zinc-900",
-                        (!canSubmit || isStreaming) && "opacity-50",
+                        (!canSubmit || isStreaming || hasPendingApproval) && "opacity-50",
                       )}
-                      disabled={!canSubmit || isStreaming}
+                      disabled={!canSubmit || isStreaming || hasPendingApproval}
                       type="submit"
                     >
                       {isSubmitting ? "..." : "Send"}
