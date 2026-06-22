@@ -152,7 +152,7 @@ export function Chat() {
                   name={field.name}
                   onBlur={field.handleBlur}
                   onChange={(event) => field.handleChange(event.target.value)}
-                  placeholder="e.g. add a task to buy milk, high priority"
+                  placeholder="例: 高優先度で週次レポート提出タスクを追加"
                   value={field.state.value}
                 />
                 <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>

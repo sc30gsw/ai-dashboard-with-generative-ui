@@ -1,9 +1,10 @@
 import { Result, TaggedError } from "better-result";
-import { and, asc, desc, eq, like, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, like, sql } from "drizzle-orm";
 
 import { db } from "~/db";
 import { tasks } from "~/db/schema";
 import type {
+  BulkUpdateTasksInput,
   CreateTaskInput,
   ListTasksInput,
   Task,
@@ -60,6 +61,51 @@ export abstract class TaskService {
         const created = await db.insert(tasks).values(inputs).returning();
 
         return { addedCount: created.length, tasks: created };
+      },
+    });
+  }
+
+  static bulkUpdate(input: BulkUpdateTasksInput) {
+    return Result.tryPromise({
+      catch: (cause) => new TaskError({ cause, message: "Failed to bulk update tasks" }),
+      try: async () => {
+        const filters = [
+          input.status === "active" ? eq(tasks.completed, false) : undefined,
+          input.status === "completed" ? eq(tasks.completed, true) : undefined,
+          like(tasks.title, `%${input.search}%`),
+        ].filter((filter) => filter !== undefined);
+
+        const matching = await db
+          .select({ id: tasks.id })
+          .from(tasks)
+          .where(and(...filters));
+
+        if (matching.length === 0) {
+          return { tasks: [], updatedCount: 0 };
+        }
+
+        const updates: Partial<Pick<Task, "completed" | "priority">> = {};
+
+        if (input.priority !== undefined) {
+          updates.priority = input.priority;
+        }
+
+        if (input.completed !== undefined) {
+          updates.completed = input.completed;
+        }
+
+        const updated = await db
+          .update(tasks)
+          .set(updates)
+          .where(
+            inArray(
+              tasks.id,
+              matching.map((row) => row.id),
+            ),
+          )
+          .returning();
+
+        return { tasks: updated, updatedCount: updated.length };
       },
     });
   }

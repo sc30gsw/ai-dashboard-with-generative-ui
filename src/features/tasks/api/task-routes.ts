@@ -3,6 +3,7 @@ import { Elysia } from "elysia";
 
 import {
   BulkAddTasksSchema,
+  BulkUpdateTasksSchema,
   CompleteTaskSchema,
   CreateTaskSchema,
   DeleteAllTasksSchema,
@@ -52,6 +53,17 @@ export const taskRoutes = new Elysia({ prefix: "/tasks" })
         : { ok: true as const, result: result.value };
     },
     { body: BulkAddTasksSchema },
+  )
+  .post(
+    "/bulk-update",
+    async ({ body }) => {
+      const result = await TaskService.bulkUpdate(body);
+
+      return Result.isError(result)
+        ? { message: result.error.message, ok: false as const }
+        : { ok: true as const, result: result.value };
+    },
+    { body: BulkUpdateTasksSchema },
   )
   .post(
     "/complete",
