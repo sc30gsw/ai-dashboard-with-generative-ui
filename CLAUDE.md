@@ -10,6 +10,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Current stack:** TanStack Start + Router, React 19 (React Compiler enabled via Babel), Tailwind CSS v4, `cn` from the `cnfast` package (not `~/lib/utils`). Toolchain is Vite+ (`vp`, see @AGENTS.md). Node ≥ 24.17. The `~` → `src` alias is configured in `tsconfig.json` and `vite.config.ts`.
 
+**Agreed architecture (target, mostly unbuilt):** see [`requirement.md`](./requirement.md) — the agreed specification and single source of truth for the decisions below.
+
+- **API layer:** Elysia, mounted inside TanStack Start at `src/routes/api.$.ts` via `app.fetch(request)` (runs on **Node**, not a standalone Bun server); client access via **Eden Treaty**.
+- **Data:** Drizzle ORM + Turso (libsql); schema↔validation bridge via `drizzle-zod`. Zod stays the single validator (Elysia consumes Zod via Standard Schema — no TypeBox).
+- **LLM:** Vercel AI Gateway (`AI_GATEWAY_API_KEY`, server-only); model `anthropic/claude-haiku-4.5` kept in one config constant (swappable to `anthropic/claude-sonnet-4.5`).
+- **Generative UI:** Pattern B — operable UI via OpenUI `toolProvider`; `streamText` runs without server-side tools and emits OpenUI Lang.
+- **Toolchain:** pnpm + Vite+ (`vp`) retained; **Bun is explicitly NOT adopted.**
+
 ## Behavioral Guidelines
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.

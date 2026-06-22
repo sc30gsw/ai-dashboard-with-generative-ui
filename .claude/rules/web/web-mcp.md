@@ -45,7 +45,7 @@ navigator.modelContext.registerTool(
     execute: async (args) => {
       const result = await Result.tryPromise({
         catch: (e) => e as Error,
-        try: async () => addTask(addTodoInput.parse(args).title), // same fn the UI button calls
+        try: async () => addTask(addTodoInput.parse(args).title), // run() calls the Eden client — same path the UI button calls
       });
       return result.match({
         err: (error) => ({ content: [{ type: "text", text: `Failed: ${error.message}` }] }),
@@ -61,20 +61,23 @@ In React, prefer the `@mcp-b/react-webmcp` hooks so registration follows the com
 
 ## Define tools once — share with OpenUI
 
-The same tool definitions back **both** the Web MCP surface (`registerTool`) **and** the OpenUI `toolProvider` ([web/generative-ui.md](./generative-ui.md)). Keep them in one place per feature and adapt at each edge:
+The same tool definitions back **both** the Web MCP surface (`registerTool`) **and** the OpenUI `toolProvider` ([web/generative-ui.md](./generative-ui.md)). Keep one registry per feature and adapt at each edge:
 
 ```
-src/features/todos/
+src/features/tasks/
 ├── tools/
-│   ├── add-todo.ts     # { name, description, inputSchema (Zod), execute }
-│   └── index.ts        # registry: toolMap for OpenUI + array for registerTool
+│   ├── add-task.ts     # { name, description, inputSchema (Zod), run }
+│   └── index.ts        # registry: toolMap (OpenUI toolProvider) + array (registerTool)
 ```
 
-Don't duplicate tool logic between the producer and consumer paths.
+Each tool is `{ name, description, inputSchema (Zod), run }`. `run` calls the **Eden Treaty client** — Web MCP tools run in the browser, so `execute` hits the same Eden HTTP endpoint a UI button hits. `index.ts` exposes a `toolMap` for the OpenUI `toolProvider` and an array for `registerTool`; the `registerTool` adapter sets `inputSchema: z.toJSONSchema(schema)` and wraps `run` in the `{ content: [...] }` shape. Don't duplicate tool logic between the producer and consumer paths.
+
+**Validate twice.** `Mutation` args emitted by the LLM and args from an external agent are both untrusted: Zod-parse them at the tool boundary **and** again in the Elysia route body ([web/backend-elysia-drizzle.md](./backend-elysia-drizzle.md), [typescript/zod-validation.md](../typescript/zod-validation.md)).
 
 ## Related rules
 
-- [web/generative-ui.md](./generative-ui.md) — `toolProvider` consumes the same tools
+- [web/generative-ui.md](./generative-ui.md) — `toolProvider` consumes the same shared tool map (Mutation needs a user gesture)
+- [web/backend-elysia-drizzle.md](./backend-elysia-drizzle.md) — the Elysia routes / Eden client that `run` calls
 - [typescript/zod-validation.md](../typescript/zod-validation.md) — `inputSchema` authored in Zod
 - [typescript/better-result.md](../typescript/better-result.md) — wrapping `execute`
 - [common/security.md](../common/security.md) — never expose privileged actions as unguarded tools

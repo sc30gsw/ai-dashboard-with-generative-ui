@@ -15,6 +15,7 @@
 - **Use Vite+ wrappers for one-off binaries:** Use `vp dlx` instead of package-manager-specific `dlx`/`npx` commands.
 - **Import JavaScript modules from `vite-plus`:** Instead of importing from `vite` or `vitest`, all modules should be imported from the project's `vite-plus` dependency. For example, `import { defineConfig } from 'vite-plus';` or `import { expect, test, vi } from 'vite-plus/test';`. You must not install `vitest` to import test utilities.
 - **Type-Aware Linting:** There is no need to install `oxlint-tsgolint`, `vp lint --type-aware` works out of the box.
+- **Bun is NOT adopted:** the package manager stays **pnpm** and the toolchain stays **Vite+**. Elysia (the API layer) runs on **Node** via `app.fetch(request)` mounted in a TanStack Start server route — it does not need its own Bun runtime. Do not migrate to Bun. (See `requirement.md`.)
 
 ## Supplementary project tools
 
@@ -22,3 +23,5 @@ Not part of `vp check`. Use `vp run` so installs stay routed through Vite+.
 
 - **Fallow** (`vp run fallow`) — unused files, dependencies, and exports. Use when trimming deps or refactoring entry points (`.fallowrc.json` configures the project).
 - **react-doctor** (`vp run doctor`) — React-focused health checks. The script uses `--no-lint`; keep ordinary linting on `vp lint`.
+- **Drizzle** (`drizzle-kit`) — ORM + migrations for Turso (libsql). Add deps with `vp add` and run the CLI through Vite+ (`vp exec drizzle-kit generate` / `migrate` / `push`), never a direct package manager.
+- **Elysia + Eden** — the API layer (mounted in a TanStack Start server route on Node) and its type-safe client. Add via `vp add`; Zod is consumed directly via Standard Schema (no TypeBox).

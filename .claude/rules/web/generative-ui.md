@@ -88,6 +88,8 @@ export const statCard = defineComponent({
 
 `.describe()` on every field matters — OpenUI feeds those descriptions into the model's system prompt. Vague descriptions → wrong UI.
 
+**Security:** custom components render model- and user-derived content. Never use `dangerouslySetInnerHTML` with that content — rely on React's default escaping (see [common/security.md](../common/security.md)).
+
 Extend the base library with custom components and pass the result to `<Renderer library={...}>` (combine per OpenUI's library API — check the OpenUI docs for the exact merge call):
 
 ```tsx
@@ -99,13 +101,24 @@ import { statCard } from "~/features/chat/genui/components/stat-card";
 export const genuiLibrary = openuiChatLibrary;
 ```
 
-## `toolProvider` — data into generated UI
+## `toolProvider` — operable UI (Pattern B, chosen)
 
-OpenUI Lang can emit `Query()` / `Mutation()` nodes. The `<Renderer toolProvider={...}>` prop resolves them at runtime. It accepts a **function map** or an **MCP client** (`@modelcontextprotocol/sdk`). Back it with the **same tool definitions** the app exposes to Web MCP — define tools once, feed both surfaces. See [web/web-mcp.md](./web-mcp.md).
+This project's chosen interaction model is **operable UI**: the model returns UI that _acts_, not text describing actions. OpenUI Lang emits `Query()` / `Mutation()` nodes and the `<Renderer toolProvider={...}>` prop resolves them at runtime. It accepts a **function map** or an **MCP client** (`@modelcontextprotocol/sdk`).
+
+Back it with the **same tool map** the app exposes to Web MCP — one registry per feature in `src/features/[feature]/tools/` exposes a `toolMap` (for `toolProvider`) and an array (for `registerTool`). Each tool's `run` calls the **Eden Treaty client** — the same path a UI button calls. Define tools once, feed both surfaces. See [web/web-mcp.md](./web-mcp.md).
 
 ```tsx
 <Renderer response={text} library={genuiLibrary} toolProvider={toolMap} />
 ```
+
+### Invariant: Query auto-resolves, Mutation needs a gesture
+
+- **`Query()`** (read-only) may resolve automatically on render to populate UI.
+- **`Mutation()`** must run **only on an explicit user gesture** (e.g. a `Button` `onClick`) — **never at render time**.
+
+This keeps the human in the loop and prevents surprise side effects from LLM-generated markup: the model proposes an "Add" card; the _user_ clicks to commit the write. (Mirrors the human-in-the-loop principle in [web/web-mcp.md](./web-mcp.md).)
+
+> The exact `toolProvider` / `Query` / `Mutation` runtime API (function-map shape, resolution timing) should be verified against the current `@openuidev/*` versions when wiring the first feature.
 
 ## Placement
 

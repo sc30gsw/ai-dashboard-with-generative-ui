@@ -11,13 +11,14 @@
 | フレームワーク | TanStack Start + Router、React 19（React Compiler を Babel で有効化） |
 | スタイル       | Tailwind CSS v4 + react-ui プリコンパイル CSS（`cn` は `cnfast`）     |
 | 生成 UI        | OpenUI（`@openuidev/react-lang` / `react-headless` / `react-ui`）     |
-| LLM            | Vercel AI SDK v6（`ai`）+ Anthropic Claude                            |
+| LLM            | Vercel AI SDK v6（`ai`）+ Vercel AI Gateway（`AI_GATEWAY_API_KEY`、server-only、model 例 `anthropic/claude-haiku-4.5`） |
 | Web MCP        | MCP-B polyfill（`navigator.modelContext`）                            |
 | 検証           | Zod（単一）                                                           |
 | フォーム       | TanStack Form（Standard Schema 経由で Zod を直結、アダプタ不要）      |
 | エラー処理     | better-result                                                         |
-| バックエンド   | 原則なし。必要時のみ ElysiaJS + Eden Treaty                           |
-| ツールチェーン | Vite+（`vp`、[AGENTS.md](./AGENTS.md) 参照）                          |
+| バックエンド   | ElysiaJS（API 層、`src/routes/api.$.ts` に `app.fetch` で Node マウント）+ Eden Treaty。Bun 不採用。チャットのストリーミングのみ native server route |
+| DB             | Turso（libsql）+ Drizzle ORM（`drizzle-zod`、`drizzle-typebox` は不使用）            |
+| ツールチェーン | Vite+（`vp`、[AGENTS.md](./AGENTS.md) 参照）。pnpm 維持                |
 
 > **現状 vs 目標:** 上記の多くは**まだ未配線の目標規約**です（[CLAUDE.md](./CLAUDE.md) 参照）。依存は導入済みでも、`~/features/*` 等を import する前にそのモジュールが実在するか必ず確認してください。
 
@@ -33,6 +34,7 @@
 | Generative UI（OpenUI）                           | [web/generative-ui.md](./.claude/rules/web/generative-ui.md)                       |
 | Web MCP                                           | [web/web-mcp.md](./.claude/rules/web/web-mcp.md)                                   |
 | AI ストリーミング（Vercel AI SDK + Claude）       | [web/ai-streaming.md](./.claude/rules/web/ai-streaming.md)                         |
+| バックエンド（Elysia / Drizzle / Eden / Turso）   | [web/backend-elysia-drizzle.md](./.claude/rules/web/backend-elysia-drizzle.md)     |
 | スタイリング（Tailwind v4 / react-ui CSS / cn）   | [web/styling.md](./.claude/rules/web/styling.md)                                   |
 | 開発ワークフロー（`vp`）                          | [common/development-workflow.md](./.claude/rules/common/development-workflow.md)   |
 | テスト                                            | [common/testing.md](./.claude/rules/common/testing.md)                             |

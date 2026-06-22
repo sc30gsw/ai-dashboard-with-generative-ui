@@ -11,9 +11,14 @@ alwaysApply: true
 NEVER hardcode secrets, tokens, or credentials in source files.
 
 ```typescript
-// CORRECT: read from environment at startup
+// CORRECT: client-safe value (VITE_ prefix, inlined into the bundle)
 const apiKey = import.meta.env.VITE_API_KEY;
 if (!apiKey) throw new Error("VITE_API_KEY is required");
+
+// CORRECT: server-only secret — read on the server, NO VITE_ prefix, never in the client bundle.
+// The LLM is reached through the Vercel AI Gateway; the gateway key lives only on the server.
+const gatewayKey = process.env.AI_GATEWAY_API_KEY;
+if (!gatewayKey) throw new Error("AI_GATEWAY_API_KEY is required");
 
 // WRONG: hardcoded secret
 const apiKey = "sk-abc123...";
@@ -44,4 +49,13 @@ const message = rawInput as Message;
 
 ## XSS
 
-Avoid `dangerouslySetInnerHTML`. If HTML rendering is unavoidable, sanitize the input first with a trusted library.
+Avoid `dangerouslySetInnerHTML`. If HTML rendering is unavoidable, sanitize the input first with a trusted library. In custom OpenUI `defineComponent` components, never feed model- or user-derived content into `dangerouslySetInnerHTML` — rely on React's default escaping.
+
+## LLM-output-driven execution (Generative UI Pattern B)
+
+In Pattern B the model emits OpenUI Lang containing `Query()` / `Mutation()` nodes that the client `toolProvider` resolves. Treat the model's output as an **untrusted action source**:
+
+- **`Mutation` args are untrusted.** Validate every tool argument with Zod **at both** the tool boundary **and** the Elysia route — the LLM emits these, so the double check is intentional (LLM → tool → HTTP → route).
+- **`Mutation` runs only on an explicit user gesture (a click), never at render time.** `Query` (read-only) may auto-resolve. This keeps human-in-the-loop and prevents surprise writes from generated markup.
+- **Never expose unguarded destructive actions as Web MCP tools.** A tool only does what a user could already do; destructive actions keep their confirmation. See [../web/web-mcp.md](../web/web-mcp.md).
+- **Stored prompt injection:** free-text fields (e.g. task titles) fed back into model context can carry injected instructions. Blast radius is small for a single-user local app, but design tools so they can only do what the user could do anyway. See [../web/generative-ui.md](../web/generative-ui.md).

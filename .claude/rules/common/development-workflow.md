@@ -24,6 +24,11 @@ All development operations go through **`vp`** (Vite+). Never call `pnpm`, `npm`
 | `vp run fallow`           | Detect unused code, duplication, circular deps, and complexity   |
 | `vp run fallow:dead-code` | Detect unused files, exports, and dependencies (knip equivalent) |
 | `vp run doctor`           | React-focused health checks                                      |
+| `vp exec drizzle-kit generate` | Generate SQL migrations from the Drizzle schema             |
+| `vp exec drizzle-kit migrate`  | Apply migrations to the Turso (libsql) database             |
+| `vp exec drizzle-kit push`     | Push the schema directly (dev convenience)                  |
+
+> **Stack note:** Elysia (API layer, mounted on Node in a TanStack Start server route) and Eden (its type-safe client) are part of the stack. Drizzle + Turso is the database layer. The package manager stays **pnpm**, the toolchain stays **Vite+** — **Bun is not adopted**, and direct package-manager calls remain forbidden (below).
 
 ## Forbidden
 

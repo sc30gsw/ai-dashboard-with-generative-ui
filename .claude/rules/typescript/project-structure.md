@@ -14,15 +14,19 @@ alwaysApply: true
 src/
 ├── features/          # Business logic — one module per domain
 │   └── [feature]/
+│       ├── api/         # Elysia route plugins (e.g. task-routes.ts), mounted in src/routes/api.$.ts
 │       ├── components/  # feature-specific React components
 │       ├── genui/       # OpenUI: openuiChatLibrary + custom defineComponent (library.ts)
 │       ├── hooks/       # feature-specific hooks
-│       ├── schemas/     # Zod schemas
+│       ├── schemas/     # Zod schemas (shared by Elysia body validation + tool inputSchema)
 │       ├── tools/       # tool defs shared by Web MCP + OpenUI toolProvider
 │       ├── types/       # type definitions
-│       └── lib/         # feature helpers (e.g. system prompts)
-├── routes/            # TanStack Router file-based routing (+ server routes for AI streaming)
-├── lib/               # shared setup, created on demand (e.g. AI client config)
+│       └── lib/         # feature helpers + server-only service (e.g. task-service.ts, system prompts)
+├── routes/            # TanStack Router file-based routing
+│   ├── api.$.ts       # Elysia mount (app.fetch on Node) — task CRUD API
+│   └── …              # + native server route for AI chat streaming
+├── db/                # Drizzle schema + libsql (Turso) client — created on demand
+├── lib/               # shared setup, created on demand (e.g. Eden client, AI model config)
 └── styles.css
 ```
 
