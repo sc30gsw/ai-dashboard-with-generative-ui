@@ -22,6 +22,11 @@ dist
 .fallow
 *.tsbuildinfo
 
+# local libsql / sqlite db (Drizzle dev)
+local.db
+local.db-shm
+local.db-wal
+
 # IntelliJ based IDEs
 .idea
 

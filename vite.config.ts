@@ -64,6 +64,9 @@ export default defineConfig({
     rules: {
       ...reactDoctorRules,
       "no-default-export": "error",
+      // TanStack Form (project standard) requires onSubmit + e.preventDefault() +
+      // form.handleSubmit(); this rule is a systematic false positive for it.
+      "react-doctor/no-prevent-default": "off",
     },
   },
   staged: {

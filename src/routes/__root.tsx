@@ -3,6 +3,7 @@ import type { ErrorComponentProps } from "@tanstack/react-router";
 import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
 import { Suspense, lazy } from "react";
 
+import "@openuidev/react-ui/index.css";
 import appCss from "../styles.css?url";
 
 const TanStackRouterDevtools = import.meta.env.DEV

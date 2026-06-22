@@ -21,9 +21,9 @@ src/
 │       ├── schemas/     # Zod schemas (shared by Elysia body validation + tool inputSchema)
 │       ├── tools/       # tool defs shared by Web MCP + OpenUI toolProvider
 │       ├── types/       # type definitions
-│       └── lib/         # feature helpers + server-only service (e.g. task-service.ts, system prompts)
+│       └── lib/         # non-Elysia feature helpers (e.g. system prompts, model config) — NOT the Elysia service (that co-locates in api/)
 ├── routes/            # TanStack Router file-based routing
-│   ├── api.$.ts       # Elysia mount (app.fetch on Node) — task CRUD API
+│   ├── api/$.ts       # Elysia mount (app.fetch on Node) — task CRUD API
 │   └── …              # + native server route for AI chat streaming
 ├── db/                # Drizzle schema + libsql (Turso) client — created on demand
 ├── lib/               # shared setup, created on demand (e.g. Eden client, AI model config)
