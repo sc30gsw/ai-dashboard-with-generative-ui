@@ -45,6 +45,15 @@ export const CreateTaskSchema = z.object({
   title: z.string().trim().min(1, "Title is required"),
 });
 
+export const BulkAddTasksSchema = z.object({
+  tasks: z.array(CreateTaskSchema).min(1).max(50),
+});
+
+export const BulkAddTasksOutputSchema = z.object({
+  addedCount: z.number().int().nonnegative(),
+  tasks: z.array(TaskViewToolOutputSchema),
+});
+
 /** Allows empty title while the user is still typing. */
 export const CreateTaskDraftSchema = z.object({
   priority: TaskPrioritySchema,
@@ -142,6 +151,7 @@ export const DeleteAllTasksOutputSchema = z.object({
 });
 
 export const TaskModel = {
+  bulkAddBody: BulkAddTasksSchema,
   completeBody: CompleteTaskSchema,
   createBody: CreateTaskSchema,
   deleteAllBody: DeleteAllTasksSchema,
@@ -160,6 +170,8 @@ export type TaskSortBy = z.infer<typeof TaskSortBySchema>;
 export type TaskSortDirection = z.infer<typeof TaskSortDirectionSchema>;
 export type TaskBoardSort = z.infer<typeof TaskBoardSortSchema>;
 export type CreateTaskInput = z.infer<typeof CreateTaskSchema>;
+export type BulkAddTasksInput = z.infer<typeof BulkAddTasksSchema>;
+export type BulkAddTasksOutput = z.infer<typeof BulkAddTasksOutputSchema>;
 export type CreateTaskDraftInput = z.infer<typeof CreateTaskDraftSchema>;
 export type CompleteTaskInput = z.infer<typeof CompleteTaskSchema>;
 export type DeleteTaskInput = z.infer<typeof DeleteTaskSchema>;

@@ -232,10 +232,6 @@
     "Tag": {
       "signature": "Tag(text: string, icon?: string, size?: \"sm\" | \"md\" | \"lg\", variant?: \"neutral\" | \"info\" | \"success\" | \"warning\" | \"danger\")",
       "description": "Styled tag/badge with optional icon and variant"
-    },
-    "TaskBoard": {
-      "signature": "TaskBoard(tasks: {completed: boolean, createdAt?: any, id: string, priority: \"low\" | \"medium\" | \"high\", title: string}[], initialTitle?: string, initialPriority?: \"low\" | \"medium\" | \"high\", initialSearch?: string, initialStatus?: \"all\" | \"active\" | \"completed\", initialPriorityFilter?: \"low\" | \"medium\" | \"high\", initialSortBy?: \"createdAt\" | \"priority\" | \"title\", initialSortDirection?: \"asc\" | \"desc\")",
-      "description": "Interactive task board with add, inline edit, complete, delete, search, filter, and sort controls. Completed tasks are shown muted below active tasks."
     }
   },
   "componentGroups": [
@@ -256,7 +252,10 @@
     },
     {
       "name": "Tables",
-      "components": ["Table", "Col"]
+      "components": [
+        "Table",
+        "Col"
+      ]
     },
     {
       "name": "Charts (2D)",
@@ -271,11 +270,20 @@
     },
     {
       "name": "Charts (1D)",
-      "components": ["PieChart", "RadialChart", "SingleStackedBarChart", "Slice"]
+      "components": [
+        "PieChart",
+        "RadialChart",
+        "SingleStackedBarChart",
+        "Slice"
+      ]
     },
     {
       "name": "Charts (Scatter)",
-      "components": ["ScatterChart", "ScatterSeries", "Point"]
+      "components": [
+        "ScatterChart",
+        "ScatterSeries",
+        "Point"
+      ]
     },
     {
       "name": "Forms",
@@ -306,11 +314,19 @@
     },
     {
       "name": "Buttons",
-      "components": ["Button", "Buttons"]
+      "components": [
+        "Button",
+        "Buttons"
+      ]
     },
     {
       "name": "Lists & Follow-ups",
-      "components": ["ListBlock", "ListItem", "FollowUpBlock", "FollowUpItem"],
+      "components": [
+        "ListBlock",
+        "ListItem",
+        "FollowUpBlock",
+        "FollowUpItem"
+      ],
       "notes": [
         "- Use ListBlock with ListItem references for numbered, clickable lists.",
         "- Use FollowUpBlock with FollowUpItem references at the end of a response to suggest next actions.",
@@ -320,7 +336,10 @@
     },
     {
       "name": "Sections",
-      "components": ["SectionBlock", "SectionItem"],
+      "components": [
+        "SectionBlock",
+        "SectionItem"
+      ],
       "notes": [
         "- SectionBlock renders collapsible accordion sections that auto-open as they stream.",
         "- Each section needs a unique `value` id, a `trigger` label, and a `content` array.",
@@ -349,13 +368,9 @@
     },
     {
       "name": "Data Display",
-      "components": ["TagBlock", "Tag"]
-    },
-    {
-      "components": ["TaskBoard"],
-      "name": "Task Board",
-      "notes": [
-        "Use TaskBoard for task lists. It already includes add, edit, complete, delete, search, filter, and sort controls."
+      "components": [
+        "TagBlock",
+        "Tag"
       ]
     }
   ]

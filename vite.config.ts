@@ -59,16 +59,6 @@ export default defineConfig({
           "react-doctor/only-export-components": "off",
         },
       },
-      {
-        files: [
-          "src/features/chat/genui/task-board.tsx",
-          "src/features/chat/genui/task-board-fields.tsx",
-        ],
-        rules: {
-          "react-doctor/no-multi-comp": "off",
-          "react-doctor/only-export-components": "off",
-        },
-      },
     ],
     plugins: ["react", "react-perf", "import", "jsx-a11y", "promise"],
     rules: {

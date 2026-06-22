@@ -53,6 +53,17 @@ export abstract class TaskService {
     });
   }
 
+  static bulkAdd(inputs: CreateTaskInput[]) {
+    return Result.tryPromise({
+      catch: (cause) => new TaskError({ cause, message: "Failed to bulk add tasks" }),
+      try: async () => {
+        const created = await db.insert(tasks).values(inputs).returning();
+
+        return { addedCount: created.length, tasks: created };
+      },
+    });
+  }
+
   static list(input: ListTasksInput) {
     return Result.tryPromise({
       catch: (cause) => new TaskError({ cause, message: "Failed to list tasks" }),
@@ -96,13 +107,23 @@ export abstract class TaskService {
     return Result.tryPromise({
       catch: (cause) => new TaskError({ cause, message: "Failed to update task" }),
       try: async () => {
+        const updates: Partial<Pick<Task, "completed" | "priority" | "title">> = {};
+
+        if (input.title !== undefined) {
+          updates.title = input.title;
+        }
+
+        if (input.priority !== undefined) {
+          updates.priority = input.priority;
+        }
+
+        if (input.completed !== undefined) {
+          updates.completed = input.completed;
+        }
+
         const [task] = await db
           .update(tasks)
-          .set({
-            completed: input.completed,
-            priority: input.priority,
-            title: input.title,
-          })
+          .set(updates)
           .where(eq(tasks.id, input.id))
           .returning();
 

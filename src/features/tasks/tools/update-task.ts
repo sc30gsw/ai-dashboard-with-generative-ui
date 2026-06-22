@@ -4,7 +4,7 @@ import { edenClient } from "~/lib/eden";
 
 export const updateTaskTool = {
   description:
-    "Update an existing task by id. Use this for changing title, priority, or completion state.",
+    "Update an existing task by id. Set title, priority, and/or completed in one call. Use this instead of complete_task when changing multiple fields.",
   inputSchema: UpdateTaskSchema,
   name: "update_task",
   outputSchema: TaskViewToolOutputSchema,

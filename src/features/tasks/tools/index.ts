@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { refetchTasksCollection } from "~/features/tasks/collections/tasks-collection";
 import { addTaskTool } from "~/features/tasks/tools/add-task";
+import { bulkAddTasksTool } from "~/features/tasks/tools/bulk-add-tasks";
 import { completeTaskTool } from "~/features/tasks/tools/complete-task";
 import { deleteAllTasksTool } from "~/features/tasks/tools/delete-all-tasks";
 import { deleteTaskTool } from "~/features/tasks/tools/delete-task";
@@ -12,6 +13,7 @@ import type { TaskTool, TaskToolProviderMap } from "~/features/tasks/tools/tool"
 
 export const taskTools = [
   addTaskTool,
+  bulkAddTasksTool,
   listTasksTool,
   completeTaskTool,
   updateTaskTool,
