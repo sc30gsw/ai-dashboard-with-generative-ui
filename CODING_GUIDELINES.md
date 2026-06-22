@@ -6,19 +6,19 @@
 
 ## スタック
 
-| 領域           | 採用                                                                  |
-| -------------- | --------------------------------------------------------------------- |
-| フレームワーク | TanStack Start + Router、React 19（React Compiler を Babel で有効化） |
-| スタイル       | Tailwind CSS v4 + react-ui プリコンパイル CSS（`cn` は `cnfast`）     |
-| 生成 UI        | OpenUI（`@openuidev/react-lang` / `react-headless` / `react-ui`）     |
-| LLM            | Vercel AI SDK v6（`ai`）+ Vercel AI Gateway（`AI_GATEWAY_API_KEY`、server-only、model 例 `anthropic/claude-haiku-4.5`） |
-| Web MCP        | MCP-B polyfill（`navigator.modelContext`）                            |
-| 検証           | Zod（単一）                                                           |
-| フォーム       | TanStack Form（Standard Schema 経由で Zod を直結、アダプタ不要）      |
-| エラー処理     | better-result                                                         |
+| 領域           | 採用                                                                                                                                                 |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| フレームワーク | TanStack Start + Router、React 19（React Compiler を Babel で有効化）                                                                                |
+| スタイル       | Tailwind CSS v4 + react-ui プリコンパイル CSS（`cn` は `cnfast`）                                                                                    |
+| 生成 UI        | OpenUI（`@openuidev/react-lang` / `react-headless` / `react-ui`）                                                                                    |
+| LLM            | Vercel AI SDK v6（`ai`）+ Vercel AI Gateway（`AI_GATEWAY_API_KEY`、server-only、model 例 `anthropic/claude-haiku-4.5`）                              |
+| Web MCP        | MCP-B polyfill（`navigator.modelContext`）                                                                                                           |
+| 検証           | Zod（単一）                                                                                                                                          |
+| フォーム       | TanStack Form（Standard Schema 経由で Zod を直結、アダプタ不要）                                                                                     |
+| エラー処理     | better-result                                                                                                                                        |
 | バックエンド   | ElysiaJS（API 層、`src/routes/api.$.ts` に `app.fetch` で Node マウント）+ Eden Treaty。Bun 不採用。チャットのストリーミングのみ native server route |
-| DB             | Turso（libsql）+ Drizzle ORM（`drizzle-zod`、`drizzle-typebox` は不使用）            |
-| ツールチェーン | Vite+（`vp`、[AGENTS.md](./AGENTS.md) 参照）。pnpm 維持                |
+| DB             | Turso（libsql）+ Drizzle ORM（`drizzle-zod`、`drizzle-typebox` は不使用）                                                                            |
+| ツールチェーン | Vite+（`vp`、[AGENTS.md](./AGENTS.md) 参照）。pnpm 維持                                                                                              |
 
 > **現状 vs 目標:** 上記の多くは**まだ未配線の目標規約**です（[CLAUDE.md](./CLAUDE.md) 参照）。依存は導入済みでも、`~/features/*` 等を import する前にそのモジュールが実在するか必ず確認してください。
 

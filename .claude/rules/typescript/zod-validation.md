@@ -38,13 +38,13 @@ export type CreateMessageInput = z.infer<typeof CreateMessageSchema>;
 
 Validate at system boundaries. Do **not** validate pure internal transformations.
 
-| Boundary                 | How Zod is used                                                                                                                      |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| OpenUI components        | `defineComponent({ props: z.object({...}) })` — **mandatory**, hardcoded by OpenUI ([web/generative-ui.md](../web/generative-ui.md)) |
-| Web MCP tools            | author `inputSchema` in Zod, convert with `z.toJSONSchema()` ([web/web-mcp.md](../web/web-mcp.md))                                   |
-| TanStack Form            | pass the Zod schema directly — see below                                                                                             |
-| Server routes / AI tools | parse incoming JSON before use                                                                                                       |
-| Elysia routes            | pass the Zod schema directly via Standard Schema — no adapter, no TypeBox (`t`) ([web/backend-elysia-drizzle.md](../web/backend-elysia-drizzle.md))            |
+| Boundary                 | How Zod is used                                                                                                                                                             |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OpenUI components        | `defineComponent({ props: z.object({...}) })` — **mandatory**, hardcoded by OpenUI ([web/generative-ui.md](../web/generative-ui.md))                                        |
+| Web MCP tools            | author `inputSchema` in Zod, convert with `z.toJSONSchema()` ([web/web-mcp.md](../web/web-mcp.md))                                                                          |
+| TanStack Form            | pass the Zod schema directly — see below                                                                                                                                    |
+| Server routes / AI tools | parse incoming JSON before use                                                                                                                                              |
+| Elysia routes            | pass the Zod schema directly via Standard Schema — no adapter, no TypeBox (`t`) ([web/backend-elysia-drizzle.md](../web/backend-elysia-drizzle.md))                         |
 | Drizzle schemas          | derive Zod with `drizzle-zod` (`createInsertSchema` / `createSelectSchema`) — **not** `drizzle-typebox` ([web/backend-elysia-drizzle.md](../web/backend-elysia-drizzle.md)) |
 
 ## TanStack Form (Standard Schema — no adapter)
