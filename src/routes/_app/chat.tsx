@@ -11,7 +11,6 @@ function RoutePending() {
 export const Route = createFileRoute("/_app/chat")({
   component: ChatPage,
   pendingComponent: RoutePending,
-  ssr: false,
 });
 
 function ChatPage() {

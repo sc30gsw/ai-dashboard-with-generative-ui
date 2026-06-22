@@ -89,6 +89,7 @@ export const BulkUpdateTasksOutputSchema = z.object({
 
 export const BulkDeleteTasksSchema = z
   .object({
+    priority: TaskPrioritySchema.optional(),
     search: optionalNonEmptyString,
     searchTerms: z.array(z.string().trim().min(1)).min(1).optional(),
     status: TaskStatusFilterSchema.default("all"),
@@ -98,8 +99,9 @@ export const BulkDeleteTasksSchema = z
       input.search !== undefined ||
       (input.searchTerms?.length ?? 0) > 0 ||
       input.status === "completed" ||
-      input.status === "active",
-    "Provide search, searchTerms, or status filter (completed/active)",
+      input.status === "active" ||
+      input.priority !== undefined,
+    "Provide search, searchTerms, status filter (completed/active), or priority",
   );
 
 export const BulkDeleteTasksOutputSchema = z.object({
@@ -165,6 +167,7 @@ export const CompleteTaskSchema = z.object({
 
 export const ListTasksSchema = z.object({
   priority: TaskPrioritySchema.optional(),
+  refreshKey: z.string().optional(),
   search: optionalNonEmptyString,
   searchTerms: z.array(z.string().trim().min(1)).min(1).optional(),
   sortBy: TaskSortBySchema.default("createdAt"),

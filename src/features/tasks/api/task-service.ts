@@ -147,6 +147,7 @@ export abstract class TaskService {
       try: async () => {
         const filters = [
           ...statusFilters(input),
+          input.priority ? eq(tasks.priority, input.priority) : undefined,
           titleSearchFilter(input.search, input.searchTerms),
         ].filter((filter) => filter !== undefined);
 

@@ -1,21 +1,7 @@
-import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
+//* OpenUI Lang helpers: detect and extract model-emitted OpenUI Lang from assistant
+//* message text, so the chat client can route reads to the <Renderer>.
 
-/** Plain-text clarification — no Generative UI. */
-export function createClarifyResponse(message: string) {
-  const stream = createUIMessageStream({
-    execute: ({ writer }) => {
-      const id = "clarify-text";
-
-      writer.write({ type: "text-start", id });
-      writer.write({ type: "text-delta", delta: message, id });
-      writer.write({ type: "text-end", id });
-    },
-  });
-
-  return createUIMessageStreamResponse({ stream });
-}
-
-/** Strip markdown fences or leading prose so Renderer receives valid OpenUI Lang. */
+//* Strip markdown fences or leading prose so Renderer receives valid OpenUI Lang.
 export function extractOpenUILang(text: string) {
   const trimmed = text.trim();
 

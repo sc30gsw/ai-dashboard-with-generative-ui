@@ -1,11 +1,3 @@
-import type { ToolSpec } from "@openuidev/lang-core";
-import { z } from "zod";
-
-import {
-  getLatestPinnedMutations,
-  mergeToolArgs,
-  type PinnedMutations,
-} from "~/features/chat/lib/pinned-mutations";
 import { refetchTasksCollection } from "~/features/tasks/collections/tasks-collection";
 import { addTaskTool } from "~/features/tasks/tools/add-task";
 import { bulkAddTasksTool } from "~/features/tasks/tools/bulk-add-tasks";
@@ -40,22 +32,8 @@ export async function runTaskTool(tool: TaskTool, args: Record<string, unknown>)
   return result;
 }
 
-function wrapToolRun(tool: TaskTool) {
-  return (args: Record<string, unknown>) => runTaskTool(tool, mergeToolArgs(tool.name, args));
+export function createReadToolMap() {
+  return {
+    [listTasksTool.name]: (args: Record<string, unknown>) => listTasksTool.run(args),
+  } satisfies TaskToolProviderMap;
 }
-
-export function createTaskToolMap(_pinned: PinnedMutations | null = getLatestPinnedMutations()) {
-  return Object.fromEntries(
-    taskTools.map((tool) => [tool.name, wrapToolRun(tool)]),
-  ) satisfies TaskToolProviderMap;
-}
-
-export const taskToolMap = createTaskToolMap();
-
-export const taskToolSpecs = taskTools.map((tool) => ({
-  annotations: { readOnlyHint: tool.name === "list_tasks" },
-  description: tool.description,
-  inputSchema: z.toJSONSchema(tool.inputSchema),
-  name: tool.name,
-  outputSchema: z.toJSONSchema(tool.outputSchema),
-})) satisfies ToolSpec[];

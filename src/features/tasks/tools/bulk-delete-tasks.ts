@@ -7,7 +7,7 @@ import { edenClient } from "~/lib/eden";
 
 export const bulkDeleteTasksTool = {
   description:
-    "Delete tasks matching search (title substring), searchTerms (OR), or status (completed/active). Use search for keyword filters — not sourceTitle. Requires confirmation button.",
+    "Delete tasks matching priority, search (title substring), searchTerms (OR), or status (completed/active). Use priority for 優先度high/low/medium deletes. Use search for keyword filters — not sourceTitle. Requires confirmation button.",
   inputSchema: BulkDeleteTasksSchema,
   name: "bulk_delete_tasks",
   outputSchema: BulkDeleteTasksOutputSchema,
