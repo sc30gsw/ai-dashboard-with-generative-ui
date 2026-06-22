@@ -69,11 +69,16 @@ const UpdateTaskToolInputSchema = z
     "Provide at least one field to update",
   );
 
+// Priority defaults to medium so the model never stops to ask the user for it.
+const AddTaskToolInputSchema = CreateTaskSchema.extend({
+  priority: TaskPrioritySchema.default("medium"),
+});
+
 export const chatTools = {
   add_task: tool({
     description:
-      "Add ONE task. Use for 追加 / 登録 / 作成 of a single task. Provide title and priority (low/medium/high). Runs immediately, no approval.",
-    inputSchema: CreateTaskSchema,
+      "Add ONE task. Use for 追加 / 登録 / 作成 of a single task. Provide a title; if the user does not state a priority, default to medium silently — NEVER ask the user to choose a priority. Runs immediately, no approval.",
+    inputSchema: AddTaskToolInputSchema,
     execute: async ({ priority, title }) => {
       const result = await TaskService.add({ priority, title });
 
