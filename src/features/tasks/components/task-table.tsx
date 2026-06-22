@@ -1,7 +1,6 @@
 import { Button, Chip, Table } from "@heroui/react";
 import { Link } from "@tanstack/react-router";
 
-import type { Task } from "~/features/tasks/api/task-model";
 import { tasksCollection } from "~/features/tasks/collections/tasks-collection";
 import { PriorityChip } from "~/features/tasks/components/priority-chip";
 import { useFilteredTasksQuery } from "~/features/tasks/hooks/use-filtered-tasks-query";
