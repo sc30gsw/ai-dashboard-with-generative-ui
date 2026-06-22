@@ -6,6 +6,7 @@
   "scripts": {
     "build": "vp build",
     "check": "vp check",
+    "check:skills": "npx @tanstack/intent@latest list",
     "db:generate": "vp exec drizzle-kit generate",
     "db:migrate": "vp exec drizzle-kit migrate",
     "db:push": "vp exec drizzle-kit push",
