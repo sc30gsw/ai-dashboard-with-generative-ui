@@ -1,4 +1,4 @@
-import type { ToolSpec } from "@openuidev/react-lang";
+import type { ToolSpec } from "@openuidev/lang-core";
 import { z } from "zod";
 
 import { addTaskTool } from "~/features/tasks/tools/add-task";

@@ -1,21 +1,19 @@
 import { useChat } from "@ai-sdk/react";
 import { Renderer } from "@openuidev/react-lang";
 import { useForm } from "@tanstack/react-form";
-import { DefaultChatTransport } from "ai";
+import { DefaultChatTransport, type UIMessage } from "ai";
 import { cn } from "cnfast";
 
 import { genuiLibrary } from "~/features/chat/genui/library";
 import { CreateMessageSchema } from "~/features/chat/schemas/message-schema";
 import { taskToolMap } from "~/features/tasks/tools";
 
-type MessagePart = { text?: string; type: string };
-
-function messageText(parts: MessagePart[]) {
+function messageText(parts: UIMessage["parts"]) {
   let text = "";
 
   for (const part of parts) {
     if (part.type === "text") {
-      text += part.text ?? "";
+      text += part.text;
     }
   }
 
@@ -28,6 +26,7 @@ export function Chat() {
   });
 
   const isStreaming = status === "streaming";
+  const lastMessageId = messages.at(-1)?.id;
 
   const form = useForm({
     defaultValues: { body: "" },
@@ -45,7 +44,7 @@ export function Chat() {
           message.role === "assistant" ? (
             <Renderer
               key={message.id}
-              isStreaming={isStreaming}
+              isStreaming={isStreaming && message.id === lastMessageId}
               library={genuiLibrary}
               response={messageText(message.parts)}
               toolProvider={taskToolMap}
