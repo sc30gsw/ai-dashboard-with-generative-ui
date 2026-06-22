@@ -1,12 +1,29 @@
 ---
-description: Styling — Tailwind v4 utilities, react-ui precompiled CSS, cn() (cnfast) boundary
+description: Styling — Tailwind v4 utilities, HeroUI app chrome, react-ui precompiled CSS, cn() (cnfast) boundary
 globs: ["src/**/*.{ts,tsx,css}"]
 alwaysApply: true
 ---
 
 # Styling
 
-No standalone design-system component library. Styling = **Tailwind CSS v4** for layout/utilities + **react-ui's precompiled CSS** for the generative-UI components (see [web/generative-ui.md](./generative-ui.md)).
+Styling uses three layers with clear boundaries:
+
+- **Tailwind CSS v4** — layout, spacing, and utility classes on app chrome wrappers
+- **HeroUI (`@heroui/react` + `@heroui/styles`)** — dashboard shell, tables, cards, forms, and non-Generative task pages
+- **OpenUI react-ui precompiled CSS** — Generative UI components rendered by `<Renderer>` (see [web/generative-ui.md](./generative-ui.md))
+
+Do not mix HeroUI styling into OpenUI-generated markup or vice versa.
+
+## HeroUI CSS
+
+Import HeroUI styles immediately after Tailwind in `src/styles.css`:
+
+```css
+@import "tailwindcss";
+@import "@heroui/styles";
+```
+
+HeroUI v3 does not require a Provider wrapper.
 
 ## react-ui CSS
 

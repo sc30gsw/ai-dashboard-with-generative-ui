@@ -9,14 +9,22 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
+import { Route as AppChatRouteImport } from './routes/_app/chat'
+import { Route as AppTasksIndexRouteImport } from './routes/_app/tasks/index'
+import { Route as AppTasksTaskIdRouteImport } from './routes/_app/tasks/$taskId'
 
-const IndexRoute = IndexRouteImport.update({
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
 } as any)
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
@@ -28,45 +36,91 @@ const ApiSplatRoute = ApiSplatRouteImport.update({
   path: '/api/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppChatRoute = AppChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTasksIndexRoute = AppTasksIndexRouteImport.update({
+  id: '/tasks/',
+  path: '/tasks/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTasksTaskIdRoute = AppTasksTaskIdRouteImport.update({
+  id: '/tasks/$taskId',
+  path: '/tasks/$taskId',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof AppIndexRoute
+  '/chat': typeof AppChatRoute
   '/api/$': typeof ApiSplatRoute
   '/api/chat': typeof ApiChatRoute
+  '/tasks/$taskId': typeof AppTasksTaskIdRoute
+  '/tasks/': typeof AppTasksIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/chat': typeof AppChatRoute
   '/api/$': typeof ApiSplatRoute
   '/api/chat': typeof ApiChatRoute
+  '/': typeof AppIndexRoute
+  '/tasks/$taskId': typeof AppTasksTaskIdRoute
+  '/tasks': typeof AppTasksIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/_app/chat': typeof AppChatRoute
   '/api/$': typeof ApiSplatRoute
   '/api/chat': typeof ApiChatRoute
+  '/_app/': typeof AppIndexRoute
+  '/_app/tasks/$taskId': typeof AppTasksTaskIdRoute
+  '/_app/tasks/': typeof AppTasksIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/$' | '/api/chat'
+  fullPaths:
+    | '/'
+    | '/chat'
+    | '/api/$'
+    | '/api/chat'
+    | '/tasks/$taskId'
+    | '/tasks/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/$' | '/api/chat'
-  id: '__root__' | '/' | '/api/$' | '/api/chat'
+  to: '/chat' | '/api/$' | '/api/chat' | '/' | '/tasks/$taskId' | '/tasks'
+  id:
+    | '__root__'
+    | '/_app'
+    | '/_app/chat'
+    | '/api/$'
+    | '/api/chat'
+    | '/_app/'
+    | '/_app/tasks/$taskId'
+    | '/_app/tasks/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
   ApiSplatRoute: typeof ApiSplatRoute
   ApiChatRoute: typeof ApiChatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/': {
+      id: '/_app/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
     }
     '/api/chat': {
       id: '/api/chat'
@@ -82,11 +136,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/chat': {
+      id: '/_app/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof AppChatRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/tasks/': {
+      id: '/_app/tasks/'
+      path: '/tasks'
+      fullPath: '/tasks/'
+      preLoaderRoute: typeof AppTasksIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/tasks/$taskId': {
+      id: '/_app/tasks/$taskId'
+      path: '/tasks/$taskId'
+      fullPath: '/tasks/$taskId'
+      preLoaderRoute: typeof AppTasksTaskIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppChatRoute: typeof AppChatRoute
+  AppIndexRoute: typeof AppIndexRoute
+  AppTasksTaskIdRoute: typeof AppTasksTaskIdRoute
+  AppTasksIndexRoute: typeof AppTasksIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppChatRoute: AppChatRoute,
+  AppIndexRoute: AppIndexRoute,
+  AppTasksTaskIdRoute: AppTasksTaskIdRoute,
+  AppTasksIndexRoute: AppTasksIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
   ApiSplatRoute: ApiSplatRoute,
   ApiChatRoute: ApiChatRoute,
 }

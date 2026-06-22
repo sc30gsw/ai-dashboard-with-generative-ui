@@ -1,9 +1,12 @@
 /// <reference types="vite-plus/client" />
+import { QueryClientProvider } from "@tanstack/react-query";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
 import { Suspense, lazy } from "react";
 
 import "@openuidev/react-ui/index.css";
+import { queryClient } from "~/lib/query-client";
+
 import appCss from "../styles.css?url";
 
 const TanStackRouterDevtools = import.meta.env.DEV
@@ -21,7 +24,7 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { content: "width=device-width, initial-scale=1", name: "viewport" },
-      { title: "TanStack Start Template" },
+      { title: "AI Dashboard" },
     ],
   }),
   notFoundComponent: NotFoundComponent,
@@ -35,7 +38,9 @@ function RootComponent() {
         <HeadContent />
       </head>
       <body>
-        <Outlet />
+        <QueryClientProvider client={queryClient}>
+          <Outlet />
+        </QueryClientProvider>
         {TanStackRouterDevtools ? (
           <Suspense fallback={null}>
             <TanStackRouterDevtools position="bottom-right" />

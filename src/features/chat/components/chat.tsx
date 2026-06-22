@@ -39,25 +39,36 @@ export function Chat() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3">
+      <div aria-label="Chat history" className="flex flex-col gap-4">
         {messages.map((message) =>
           message.role === "assistant" ? (
-            <Renderer
-              key={message.id}
-              isStreaming={isStreaming && message.id === lastMessageId}
-              library={genuiLibrary}
-              response={messageText(message.parts)}
-              toolProvider={taskToolMap}
-            />
+            <article className="max-w-full" key={message.id}>
+              <p className="mb-2 text-xs font-medium tracking-wide text-zinc-500 uppercase">
+                Assistant
+              </p>
+              <Renderer
+                isStreaming={isStreaming && message.id === lastMessageId}
+                library={genuiLibrary}
+                response={messageText(message.parts)}
+                toolProvider={taskToolMap}
+              />
+            </article>
           ) : (
-            <p key={message.id} className="text-right text-gray-700">
-              {messageText(message.parts)}
-            </p>
+            <article className="flex justify-end" key={message.id}>
+              <div className="max-w-[80%] rounded-lg border border-zinc-200 bg-white px-4 py-3 text-zinc-800 shadow-sm">
+                <p className="mb-1 text-xs font-medium tracking-wide text-zinc-500 uppercase">
+                  You
+                </p>
+                <p className="text-sm leading-6 wrap-break-word">{messageText(message.parts)}</p>
+              </div>
+            </article>
           ),
         )}
       </div>
 
       <form
+        aria-label="Send chat message"
+        className="rounded-lg border border-zinc-200 bg-white p-3 shadow-sm"
         onSubmit={(event) => {
           event.preventDefault();
           void form.handleSubmit();
@@ -66,10 +77,15 @@ export function Chat() {
         <form.Field name="body">
           {(field) => (
             <div className="flex flex-col gap-1">
-              <div className="flex gap-2">
+              <label className="text-sm font-medium text-zinc-700" htmlFor={field.name}>
+                Message
+              </label>
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <input
                   aria-label="Chat message"
-                  className={cn("flex-1 rounded-md border px-3 py-2")}
+                  className={cn(
+                    "min-h-12 flex-1 rounded-md border border-zinc-300 px-3 text-base outline-offset-2 placeholder:text-zinc-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900",
+                  )}
                   id={field.name}
                   name={field.name}
                   onBlur={field.handleBlur}
@@ -81,7 +97,7 @@ export function Chat() {
                   {([canSubmit, isSubmitting]) => (
                     <button
                       className={cn(
-                        "rounded-md bg-black px-4 py-2 text-white",
+                        "min-h-12 rounded-md bg-black px-5 font-medium text-white outline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-zinc-900",
                         (!canSubmit || isStreaming) && "opacity-50",
                       )}
                       disabled={!canSubmit || isStreaming}

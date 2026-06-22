@@ -1,6 +1,7 @@
 import type { ToolSpec } from "@openuidev/lang-core";
 import { z } from "zod";
 
+import { refetchTasksCollection } from "~/features/tasks/collections/tasks-collection";
 import { addTaskTool } from "~/features/tasks/tools/add-task";
 import { completeTaskTool } from "~/features/tasks/tools/complete-task";
 import { listTasksTool } from "~/features/tasks/tools/list-tasks";
@@ -12,8 +13,18 @@ export const taskTools = [
   completeTaskTool,
 ] as const satisfies readonly TaskTool[];
 
+export async function runTaskTool(tool: TaskTool, args: Record<string, unknown>) {
+  const result = await tool.run(args);
+
+  if (tool.name !== "list_tasks") {
+    await refetchTasksCollection();
+  }
+
+  return result;
+}
+
 export const taskToolMap = Object.fromEntries(
-  taskTools.map((tool) => [tool.name, (args) => tool.run(args)]),
+  taskTools.map((tool) => [tool.name, (args) => runTaskTool(tool, args)]),
 ) satisfies TaskToolProviderMap;
 
 export const taskToolSpecs = taskTools.map((tool) => ({
