@@ -3,7 +3,8 @@ import type { TaskTool } from "~/features/tasks/tools/tool";
 import { edenClient } from "~/lib/eden";
 
 export const deleteTaskTool = {
-  description: "Delete an existing task by id. This permanently removes the task.",
+  description:
+    "Delete one task by id. Requires user confirmation in UI before running. Use sourceTitle in intent resolution when id is unknown.",
   inputSchema: DeleteTaskSchema,
   name: "delete_task",
   outputSchema: TaskViewToolOutputSchema,

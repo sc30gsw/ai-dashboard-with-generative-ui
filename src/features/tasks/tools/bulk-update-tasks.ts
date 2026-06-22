@@ -7,7 +7,7 @@ import { edenClient } from "~/lib/eden";
 
 export const bulkUpdateTasksTool = {
   description:
-    "Update multiple tasks whose titles match a search substring (same as list_tasks search). Set priority and/or completed for all matches in one call. Use for category updates (e.g. all メール-related tasks) — not update_task.",
+    "Bulk update by search (title substring), searchTerms (OR), or status filter (active/completed). Set title, priority, and/or completed. For keyword filters use search — not sourceTitle. Requires confirmation button.",
   inputSchema: BulkUpdateTasksSchema,
   name: "bulk_update_tasks",
   outputSchema: BulkUpdateTasksOutputSchema,

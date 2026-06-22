@@ -7,7 +7,9 @@ import { useFilteredTasksQuery } from "~/features/tasks/hooks/use-filtered-tasks
 import type { useTaskListFilters } from "~/features/tasks/hooks/use-tasks-list-filters";
 import { taskListFiltersToQuery } from "~/features/tasks/utils/tasks-live-query";
 
-export function TaskTable({ filters }: Record<'filters', ReturnType<typeof useTaskListFilters>["filters"]>) {
+export function TaskTable({
+  filters,
+}: Record<"filters", ReturnType<typeof useTaskListFilters>["filters"]>) {
   const queryFilters = taskListFiltersToQuery(filters);
   const { data: tasks } = useFilteredTasksQuery(queryFilters);
 

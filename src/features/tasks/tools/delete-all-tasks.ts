@@ -1,7 +1,4 @@
-import {
-  DeleteAllTasksOutputSchema,
-  DeleteAllTasksSchema,
-} from "~/features/tasks/api/task-model";
+import { DeleteAllTasksOutputSchema, DeleteAllTasksSchema } from "~/features/tasks/api/task-model";
 import type { TaskTool } from "~/features/tasks/tools/tool";
 import { edenClient } from "~/lib/eden";
 

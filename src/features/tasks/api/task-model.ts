@@ -40,13 +40,26 @@ export const TaskSortBySchema = z.enum(TASK_SORT_BY_FIELDS);
 export const TaskSortDirectionSchema = z.enum(TASK_SORT_DIRECTIONS);
 export const TaskBoardSortSchema = z.enum(TASK_BOARD_SORTS);
 
+/** Treat null/blank as absent so LLM-generated empty search does not fail validation. */
+const optionalNonEmptyString = z.preprocess(
+  (value) =>
+    value === null || value === undefined || (typeof value === "string" && value.trim() === "")
+      ? undefined
+      : value,
+  z.string().trim().min(1).optional(),
+);
+
 export const CreateTaskSchema = z.object({
   priority: TaskPrioritySchema,
   title: z.string().trim().min(1, "Title is required"),
 });
 
+export const BulkAddTaskItemSchema = CreateTaskSchema.extend({
+  completed: z.boolean().optional(),
+});
+
 export const BulkAddTasksSchema = z.object({
-  tasks: z.array(CreateTaskSchema).min(1).max(50),
+  tasks: z.array(BulkAddTaskItemSchema).min(1).max(50),
 });
 
 export const BulkAddTasksOutputSchema = z.object({
@@ -58,17 +71,39 @@ export const BulkUpdateTasksSchema = z
   .object({
     completed: z.boolean().optional(),
     priority: TaskPrioritySchema.optional(),
-    search: z.string().trim().min(1, "Search is required"),
+    search: optionalNonEmptyString,
+    searchTerms: z.array(z.string().trim().min(1)).min(1).optional(),
     status: TaskStatusFilterSchema.default("all"),
+    title: z.string().trim().min(1).optional(),
   })
   .refine(
-    (input) => input.priority !== undefined || input.completed !== undefined,
+    (input) =>
+      input.title !== undefined || input.priority !== undefined || input.completed !== undefined,
     "Provide at least one field to update",
   );
 
 export const BulkUpdateTasksOutputSchema = z.object({
   tasks: z.array(TaskViewToolOutputSchema),
   updatedCount: z.number().int().nonnegative(),
+});
+
+export const BulkDeleteTasksSchema = z
+  .object({
+    search: optionalNonEmptyString,
+    searchTerms: z.array(z.string().trim().min(1)).min(1).optional(),
+    status: TaskStatusFilterSchema.default("all"),
+  })
+  .refine(
+    (input) =>
+      input.search !== undefined ||
+      (input.searchTerms?.length ?? 0) > 0 ||
+      input.status === "completed" ||
+      input.status === "active",
+    "Provide search, searchTerms, or status filter (completed/active)",
+  );
+
+export const BulkDeleteTasksOutputSchema = z.object({
+  deletedCount: z.number().int().nonnegative(),
 });
 
 /** Allows empty title while the user is still typing. */
@@ -130,7 +165,8 @@ export const CompleteTaskSchema = z.object({
 
 export const ListTasksSchema = z.object({
   priority: TaskPrioritySchema.optional(),
-  search: z.string().trim().optional(),
+  search: optionalNonEmptyString,
+  searchTerms: z.array(z.string().trim().min(1)).min(1).optional(),
   sortBy: TaskSortBySchema.default("createdAt"),
   sortDirection: TaskSortDirectionSchema.default("asc"),
   status: TaskStatusFilterSchema.default("all"),
@@ -169,6 +205,7 @@ export const DeleteAllTasksOutputSchema = z.object({
 
 export const TaskModel = {
   bulkAddBody: BulkAddTasksSchema,
+  bulkDeleteBody: BulkDeleteTasksSchema,
   bulkUpdateBody: BulkUpdateTasksSchema,
   completeBody: CompleteTaskSchema,
   createBody: CreateTaskSchema,
@@ -192,6 +229,8 @@ export type BulkAddTasksInput = z.infer<typeof BulkAddTasksSchema>;
 export type BulkAddTasksOutput = z.infer<typeof BulkAddTasksOutputSchema>;
 export type BulkUpdateTasksInput = z.infer<typeof BulkUpdateTasksSchema>;
 export type BulkUpdateTasksOutput = z.infer<typeof BulkUpdateTasksOutputSchema>;
+export type BulkDeleteTasksInput = z.infer<typeof BulkDeleteTasksSchema>;
+export type BulkDeleteTasksOutput = z.infer<typeof BulkDeleteTasksOutputSchema>;
 export type CreateTaskDraftInput = z.infer<typeof CreateTaskDraftSchema>;
 export type CompleteTaskInput = z.infer<typeof CompleteTaskSchema>;
 export type DeleteTaskInput = z.infer<typeof DeleteTaskSchema>;

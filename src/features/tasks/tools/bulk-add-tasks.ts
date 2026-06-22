@@ -1,13 +1,10 @@
-import {
-  BulkAddTasksOutputSchema,
-  BulkAddTasksSchema,
-} from "~/features/tasks/api/task-model";
+import { BulkAddTasksOutputSchema, BulkAddTasksSchema } from "~/features/tasks/api/task-model";
 import type { TaskTool } from "~/features/tasks/tools/tool";
 import { edenClient } from "~/lib/eden";
 
 export const bulkAddTasksTool = {
   description:
-    "Add multiple tasks in one operation. Provide a tasks array with title and priority for each item. Use for bulk or sample registration (e.g. 10 tasks).",
+    "Add multiple tasks in one operation. Provide a tasks array with title and priority for each item. Use for bulk registration, repeated titles, or sample/random tasks — invent appropriate titles when the user asks for サンプル/ランダム/適当.",
   inputSchema: BulkAddTasksSchema,
   name: "bulk_add_tasks",
   outputSchema: BulkAddTasksOutputSchema,

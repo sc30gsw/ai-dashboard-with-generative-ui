@@ -3,7 +3,8 @@ import type { TaskTool } from "~/features/tasks/tools/tool";
 import { edenClient } from "~/lib/eden";
 
 export const completeTaskTool = {
-  description: "Mark a task as completed by its id.",
+  description:
+    "Mark a task as completed by id. Use Mutation(complete_task, {}) in UI — server pins id on click.",
   inputSchema: CompleteTaskSchema,
   name: "complete_task",
   outputSchema: TaskViewToolOutputSchema,

@@ -1,9 +1,12 @@
 import { Result, TaggedError } from "better-result";
-import { and, asc, desc, eq, inArray, like, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, or, sql } from "drizzle-orm";
 
 import { db } from "~/db";
 import { tasks } from "~/db/schema";
+import { likeContainsPattern } from "~/features/tasks/api/like-search";
 import type {
+  BulkAddTasksInput,
+  BulkDeleteTasksInput,
   BulkUpdateTasksInput,
   CreateTaskInput,
   ListTasksInput,
@@ -38,6 +41,31 @@ function orderFor(input: ListTasksInput) {
   return direction(tasks.createdAt);
 }
 
+function titleLikeCondition(term: string) {
+  const pattern = likeContainsPattern(term);
+
+  return sql`${tasks.title} LIKE ${pattern} ESCAPE '\\'`;
+}
+
+function titleSearchFilter(search?: string, searchTerms?: string[]) {
+  if (searchTerms && searchTerms.length > 0) {
+    return or(...searchTerms.map((term) => titleLikeCondition(term)));
+  }
+
+  if (search) {
+    return titleLikeCondition(search);
+  }
+
+  return undefined;
+}
+
+function statusFilters(input: { status: ListTasksInput["status"] }) {
+  return [
+    input.status === "active" ? eq(tasks.completed, false) : undefined,
+    input.status === "completed" ? eq(tasks.completed, true) : undefined,
+  ].filter((filter) => filter !== undefined);
+}
+
 export abstract class TaskService {
   static add(input: CreateTaskInput) {
     return Result.tryPromise({
@@ -54,7 +82,7 @@ export abstract class TaskService {
     });
   }
 
-  static bulkAdd(inputs: CreateTaskInput[]) {
+  static bulkAdd(inputs: BulkAddTasksInput["tasks"]) {
     return Result.tryPromise({
       catch: (cause) => new TaskError({ cause, message: "Failed to bulk add tasks" }),
       try: async () => {
@@ -70,9 +98,8 @@ export abstract class TaskService {
       catch: (cause) => new TaskError({ cause, message: "Failed to bulk update tasks" }),
       try: async () => {
         const filters = [
-          input.status === "active" ? eq(tasks.completed, false) : undefined,
-          input.status === "completed" ? eq(tasks.completed, true) : undefined,
-          like(tasks.title, `%${input.search}%`),
+          ...statusFilters(input),
+          titleSearchFilter(input.search, input.searchTerms),
         ].filter((filter) => filter !== undefined);
 
         const matching = await db
@@ -84,7 +111,11 @@ export abstract class TaskService {
           return { tasks: [], updatedCount: 0 };
         }
 
-        const updates: Partial<Pick<Task, "completed" | "priority">> = {};
+        const updates: Partial<Pick<Task, "completed" | "priority" | "title">> = {};
+
+        if (input.title !== undefined) {
+          updates.title = input.title;
+        }
 
         if (input.priority !== undefined) {
           updates.priority = input.priority;
@@ -110,6 +141,25 @@ export abstract class TaskService {
     });
   }
 
+  static bulkDelete(input: BulkDeleteTasksInput) {
+    return Result.tryPromise({
+      catch: (cause) => new TaskError({ cause, message: "Failed to bulk delete tasks" }),
+      try: async () => {
+        const filters = [
+          ...statusFilters(input),
+          titleSearchFilter(input.search, input.searchTerms),
+        ].filter((filter) => filter !== undefined);
+
+        const deleted = await db
+          .delete(tasks)
+          .where(and(...filters))
+          .returning();
+
+        return { deletedCount: deleted.length };
+      },
+    });
+  }
+
   static list(input: ListTasksInput) {
     return Result.tryPromise({
       catch: (cause) => new TaskError({ cause, message: "Failed to list tasks" }),
@@ -118,7 +168,7 @@ export abstract class TaskService {
           input.status === "active" ? eq(tasks.completed, false) : undefined,
           input.status === "completed" ? eq(tasks.completed, true) : undefined,
           input.priority ? eq(tasks.priority, input.priority) : undefined,
-          input.search ? like(tasks.title, `%${input.search}%`) : undefined,
+          titleSearchFilter(input.search, input.searchTerms),
         ].filter((filter) => filter !== undefined);
 
         return db

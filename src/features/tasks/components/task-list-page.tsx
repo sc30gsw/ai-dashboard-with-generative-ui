@@ -9,7 +9,6 @@ import { useTaskListFilters } from "~/features/tasks/hooks/use-tasks-list-filter
 export function TaskListPage() {
   const { filters, form } = useTaskListFilters();
 
-
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -33,8 +32,7 @@ export function TaskListPage() {
         </Card.Header>
         <Card.Content>
           <Suspense fallback={<p className="text-muted text-sm">読み込み中...</p>}>
-          
-          <TaskTable filters={filters} />
+            <TaskTable filters={filters} />
           </Suspense>
         </Card.Content>
       </Card>

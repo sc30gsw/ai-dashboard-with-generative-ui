@@ -2,17 +2,16 @@ import { gateway } from "@ai-sdk/gateway";
 import { createFileRoute } from "@tanstack/react-router";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
 
-import {
-  buildActionContext,
-  conversationContextFromMessages,
-  executeChatAction,
-  lastUserTextFromMessages,
-  resolveActionWithGroundTruth,
-} from "~/features/chat/lib/chat-action";
+import { createClarifyResponse } from "~/features/chat/lib/clarify-response";
 import { chatModel } from "~/features/chat/lib/model";
 import { systemPrompt } from "~/features/chat/lib/system-prompt";
+import {
+  conversationContextFromMessages,
+  lastUserTextFromMessages,
+  resolveToolIntent,
+} from "~/features/chat/lib/tool-intent";
 
-// Hybrid: safe adds run on the server before UI generation; deletes/updates get confirm UI only.
+// Hybrid: adds auto-execute on server; CUD tools get confirm UI with server-pinned mutation args.
 async function handleChat({ request }: Record<"request", Request>) {
   if (!process.env.AI_GATEWAY_API_KEY) {
     throw new Error("AI_GATEWAY_API_KEY is required");
@@ -22,20 +21,27 @@ async function handleChat({ request }: Record<"request", Request>) {
   const userText = lastUserTextFromMessages(messages);
 
   let actionContext = "";
+  let pinnedHeader = "";
 
   if (userText) {
-    const conversationContext = conversationContextFromMessages(messages);
-    const { action, groundTruth, matchedTasks, search } = await resolveActionWithGroundTruth(
-      userText,
-      conversationContext,
-    );
-    const execution =
-      action.kind === "add" || action.kind === "bulk_add" ? await executeChatAction(action) : null;
+    try {
+      const conversationContext = conversationContextFromMessages(messages);
+      const resolved = await resolveToolIntent(userText, conversationContext);
 
-    const builtContext = buildActionContext(action, execution, matchedTasks, search);
-    const sections = [builtContext, groundTruth].filter(Boolean);
+      if (resolved.clarifyMessage) {
+        return createClarifyResponse(resolved.clarifyMessage);
+      }
 
-    actionContext = sections.join("\n\n");
+      const sections = [resolved.uiContext, resolved.groundTruth].filter(Boolean);
+
+      actionContext = sections.join("\n\n");
+      pinnedHeader = encodeURIComponent(JSON.stringify(resolved.pinnedMutations));
+    } catch (error) {
+      console.error(
+        "[chat] resolveToolIntent failed — streaming UI without runtime context",
+        error,
+      );
+    }
   }
 
   const modelMessages = await convertToModelMessages(messages);
@@ -48,7 +54,13 @@ async function handleChat({ request }: Record<"request", Request>) {
       : systemPrompt,
   });
 
-  return result.toUIMessageStreamResponse();
+  const response = result.toUIMessageStreamResponse();
+
+  if (pinnedHeader) {
+    response.headers.set("X-Pinned-Mutations", pinnedHeader);
+  }
+
+  return response;
 }
 
 export const Route = createFileRoute("/api/chat")({

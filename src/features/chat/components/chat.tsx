@@ -4,10 +4,17 @@ import { Renderer } from "@openuidev/react-lang";
 import { useForm } from "@tanstack/react-form";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { cn } from "cnfast";
+import { useState } from "react";
 
 import { genuiLibrary } from "~/features/chat/genui/library";
+import { isOpenUILangResponse, extractOpenUILang } from "~/features/chat/lib/clarify-response";
+import {
+  getLatestPinnedMutations,
+  setLatestPinnedMutations,
+  type PinnedMutations,
+} from "~/features/chat/lib/pinned-mutations";
 import { CreateMessageSchema } from "~/features/chat/schemas/message-schema";
-import { taskToolMap } from "~/features/tasks/tools";
+import { createTaskToolMap } from "~/features/tasks/tools";
 
 function messageText(parts: UIMessage["parts"]) {
   let text = "";
@@ -67,9 +74,33 @@ function isPendingAssistantResponse(
 }
 
 export function Chat() {
+  const [pinnedMutations, setPinnedMutations] = useState<PinnedMutations | null>(null);
+
   const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({ api: "/api/chat" }),
+    transport: new DefaultChatTransport({
+      api: "/api/chat",
+      fetch: async (input, init) => {
+        const response = await fetch(input, init);
+        const header = response.headers.get("X-Pinned-Mutations");
+
+        if (header) {
+          try {
+            const pinned = JSON.parse(decodeURIComponent(header)) as PinnedMutations;
+
+            setPinnedMutations(pinned);
+            setLatestPinnedMutations(pinned);
+          } catch {
+            setPinnedMutations(null);
+            setLatestPinnedMutations(null);
+          }
+        }
+
+        return response;
+      },
+    }),
   });
+
+  const toolProvider = createTaskToolMap(pinnedMutations ?? getLatestPinnedMutations());
 
   const isStreaming = status === "streaming";
   const lastMessageId = messages.at(-1)?.id;
@@ -102,17 +133,23 @@ export function Chat() {
               <p className="mb-2 text-xs font-medium tracking-wide text-zinc-500 uppercase">
                 Assistant
               </p>
-              <Renderer
-                isStreaming={isStreaming && message.id === lastMessageId}
-                library={genuiLibrary}
-                onAction={(event) => {
-                  if (event.type === BuiltinActionType.ContinueConversation) {
-                    sendMessage({ text: event.humanFriendlyMessage });
-                  }
-                }}
-                response={messageText(message.parts)}
-                toolProvider={taskToolMap}
-              />
+              {isOpenUILangResponse(messageText(message.parts)) ? (
+                <Renderer
+                  isStreaming={isStreaming && message.id === lastMessageId}
+                  library={genuiLibrary}
+                  onAction={(event) => {
+                    if (event.type === BuiltinActionType.ContinueConversation) {
+                      sendMessage({ text: event.humanFriendlyMessage });
+                    }
+                  }}
+                  response={extractOpenUILang(messageText(message.parts)) ?? ""}
+                  toolProvider={toolProvider}
+                />
+              ) : (
+                <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm leading-6 text-zinc-800 shadow-sm">
+                  {messageText(message.parts)}
+                </div>
+              )}
             </article>
           ) : (
             <article className="flex justify-end" key={message.id}>

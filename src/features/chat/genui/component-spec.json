@@ -252,10 +252,7 @@
     },
     {
       "name": "Tables",
-      "components": [
-        "Table",
-        "Col"
-      ]
+      "components": ["Table", "Col"]
     },
     {
       "name": "Charts (2D)",
@@ -270,20 +267,11 @@
     },
     {
       "name": "Charts (1D)",
-      "components": [
-        "PieChart",
-        "RadialChart",
-        "SingleStackedBarChart",
-        "Slice"
-      ]
+      "components": ["PieChart", "RadialChart", "SingleStackedBarChart", "Slice"]
     },
     {
       "name": "Charts (Scatter)",
-      "components": [
-        "ScatterChart",
-        "ScatterSeries",
-        "Point"
-      ]
+      "components": ["ScatterChart", "ScatterSeries", "Point"]
     },
     {
       "name": "Forms",
@@ -314,19 +302,11 @@
     },
     {
       "name": "Buttons",
-      "components": [
-        "Button",
-        "Buttons"
-      ]
+      "components": ["Button", "Buttons"]
     },
     {
       "name": "Lists & Follow-ups",
-      "components": [
-        "ListBlock",
-        "ListItem",
-        "FollowUpBlock",
-        "FollowUpItem"
-      ],
+      "components": ["ListBlock", "ListItem", "FollowUpBlock", "FollowUpItem"],
       "notes": [
         "- Use ListBlock with ListItem references for numbered, clickable lists.",
         "- Use FollowUpBlock with FollowUpItem references at the end of a response to suggest next actions.",
@@ -336,10 +316,7 @@
     },
     {
       "name": "Sections",
-      "components": [
-        "SectionBlock",
-        "SectionItem"
-      ],
+      "components": ["SectionBlock", "SectionItem"],
       "notes": [
         "- SectionBlock renders collapsible accordion sections that auto-open as they stream.",
         "- Each section needs a unique `value` id, a `trigger` label, and a `content` array.",
@@ -368,10 +345,7 @@
     },
     {
       "name": "Data Display",
-      "components": [
-        "TagBlock",
-        "Tag"
-      ]
+      "components": ["TagBlock", "Tag"]
     }
   ]
 }

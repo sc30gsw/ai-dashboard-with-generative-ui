@@ -23,8 +23,6 @@ function formatFieldError(error: unknown) {
   return String(error);
 }
 
-
-
 export function TaskQuickAdd() {
   const form = useForm({
     defaultValues: {
