@@ -8,7 +8,8 @@ import type {
   ListTasksInput,
   Task,
   UpdateTaskInput,
-} from "~/features/tasks/model/task-model";
+} from "~/features/tasks/api/task-model";
+import { TASK_PRIORITIES, TASK_PRIORITY_RANK } from "~/features/tasks/api/task-model";
 
 class TaskError extends TaggedError("TaskError")<{
   cause?: unknown;
@@ -16,9 +17,10 @@ class TaskError extends TaggedError("TaskError")<{
 }>() {}
 
 const priorityRank = sql<number>`case ${tasks.priority}
-  when 'high' then 1
-  when 'medium' then 2
-  else 3
+  ${sql.join(
+    TASK_PRIORITIES.map((priority) => sql`when ${priority} then ${TASK_PRIORITY_RANK[priority]}`),
+    sql.raw(" "),
+  )}
 end`;
 
 function orderFor(input: ListTasksInput) {

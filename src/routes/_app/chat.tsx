@@ -1,13 +1,19 @@
-import { ClientOnly, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Suspense } from "react";
 
 import { Chat } from "~/features/chat/components/chat";
 import { ListTasksSchema } from "~/features/tasks/api/task-model";
 import { WebMcpTools } from "~/features/tasks/components/web-mcp-tools";
 
+function RoutePending() {
+  return <p className="text-muted text-sm">読み込み中...</p>;
+}
+
 export const Route = createFileRoute("/_app/chat")({
-  validateSearch: ListTasksSchema,
   component: ChatPage,
+  pendingComponent: RoutePending,
+  validateSearch: ListTasksSchema,
+  ssr: false,
 });
 
 function ChatPage() {
@@ -19,12 +25,10 @@ function ChatPage() {
           Generative UI task board powered by OpenUI Lang and toolProvider.
         </p>
       </div>
-      <ClientOnly fallback={<p className="text-muted text-sm">読み込み中...</p>}>
-        <Suspense fallback={<p className="text-muted text-sm">読み込み中...</p>}>
-          <WebMcpTools />
-          <Chat />
-        </Suspense>
-      </ClientOnly>
+      <Suspense fallback={<p className="text-muted text-sm">読み込み中...</p>}>
+        <WebMcpTools />
+        <Chat />
+      </Suspense>
     </div>
   );
 }

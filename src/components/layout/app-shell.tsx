@@ -11,7 +11,7 @@ const NAV_ITEMS = [
   { label: "Chat", to: "/chat" },
 ] as const satisfies readonly { label: string; to: keyof FileRoutesByTo }[];
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ children }: Record<"children", ReactNode>) {
   return (
     <div className="bg-background text-foreground flex min-h-screen flex-col">
       <header className="border-border bg-surface border-b px-4 py-3 shadow-sm">

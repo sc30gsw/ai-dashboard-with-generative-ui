@@ -3,6 +3,18 @@ import { z } from "zod";
 
 import { PRIORITIES, tasks } from "~/db/schema";
 
+export const TASK_PRIORITIES = PRIORITIES;
+export const TASK_PRIORITY_FILTERS = ["all", ...TASK_PRIORITIES] as const;
+export const TASK_STATUS_FILTERS = ["all", "active", "completed"] as const;
+export const TASK_SORT_BY_FIELDS = ["createdAt", "priority", "title"] as const;
+export const TASK_SORT_DIRECTIONS = ["asc", "desc"] as const;
+export const TASK_BOARD_SORTS = [
+  "createdAt:asc",
+  "createdAt:desc",
+  "priority:asc",
+  "title:asc",
+] as const;
+
 export const TaskSchema = createSelectSchema(tasks);
 
 export const TaskViewSchema = TaskSchema.pick({
@@ -12,31 +24,49 @@ export const TaskViewSchema = TaskSchema.pick({
   priority: true,
   title: true,
 });
+export type TaskView = z.infer<typeof TaskViewSchema>;
+
+export const TaskViewToolOutputSchema = TaskViewSchema.omit({ createdAt: true }).extend({
+  createdAt: z.iso.datetime(),
+});
+
+export const TaskPrioritySchema = z.enum(TASK_PRIORITIES);
+export const TaskPriorityFilterSchema = z.enum(TASK_PRIORITY_FILTERS);
+export const TaskStatusFilterSchema = z.enum(TASK_STATUS_FILTERS);
+export const TaskSortBySchema = z.enum(TASK_SORT_BY_FIELDS);
+export const TaskSortDirectionSchema = z.enum(TASK_SORT_DIRECTIONS);
+export const TaskBoardSortSchema = z.enum(TASK_BOARD_SORTS);
 
 export const CreateTaskSchema = z.object({
-  priority: z.enum(PRIORITIES),
+  priority: TaskPrioritySchema,
   title: z.string().trim().min(1, "Title is required"),
+});
+
+/** Allows empty title while the user is still typing. */
+export const CreateTaskDraftSchema = z.object({
+  priority: TaskPrioritySchema,
+  title: z.string(),
 });
 
 export const EditTaskFieldsSchema = CreateTaskSchema;
 
 export const TaskListFilterFormSchema = z.object({
-  priority: z.enum(["all", ...PRIORITIES]),
+  priority: TaskPriorityFilterSchema,
   search: z.string(),
-  status: z.enum(["all", "active", "completed"]),
+  status: TaskStatusFilterSchema,
 });
 
 export const TaskBoardFilterFormSchema = z.object({
-  priority: z.enum(["all", ...PRIORITIES]),
+  priority: TaskPriorityFilterSchema,
   search: z.string(),
-  sort: z.enum(["createdAt:asc", "createdAt:desc", "priority:asc", "title:asc"]),
-  status: z.enum(["all", "active", "completed"]),
+  sort: TaskBoardSortSchema,
+  status: TaskStatusFilterSchema,
 });
 
 export const defaultCreateTaskFormValues = {
   priority: "medium",
   title: "",
-} as const satisfies CreateTaskInput;
+} satisfies CreateTaskDraftInput;
 
 export const defaultTaskListFilterFormValues = {
   priority: "all",
@@ -53,7 +83,7 @@ export function boardFilterFormDefaults(filters: ListTasksInput) {
   } satisfies TaskBoardFilterFormValues;
 }
 
-export function listInputFromBoardFilterForm(value: TaskBoardFilterFormValues){
+export function listInputFromBoardFilterForm(value: TaskBoardFilterFormValues) {
   const [sortBy, sortDirection] = value.sort.split(":");
 
   return ListTasksSchema.parse({
@@ -70,11 +100,11 @@ export const CompleteTaskSchema = z.object({
 });
 
 export const ListTasksSchema = z.object({
-  priority: z.enum(PRIORITIES).optional(),
+  priority: TaskPrioritySchema.optional(),
   search: z.string().trim().optional(),
-  sortBy: z.enum(["createdAt", "priority", "title"]).default("createdAt"),
-  sortDirection: z.enum(["asc", "desc"]).default("asc"),
-  status: z.enum(["all", "active", "completed"]).default("all"),
+  sortBy: TaskSortBySchema.default("createdAt"),
+  sortDirection: TaskSortDirectionSchema.default("asc"),
+  status: TaskStatusFilterSchema.default("all"),
 });
 
 export const defaultListTasksSchema = {
@@ -89,7 +119,7 @@ export const UpdateTaskSchema = z
   .object({
     completed: z.boolean().optional(),
     id: z.string().min(1),
-    priority: z.enum(PRIORITIES).optional(),
+    priority: TaskPrioritySchema.optional(),
     title: z.string().trim().min(1, "Title is required").optional(),
   })
   .refine(
@@ -113,10 +143,23 @@ export const TaskModel = {
 } as const satisfies Record<string, z.ZodSchema<any>>;
 
 export type Task = z.infer<typeof TaskSchema>;
+export type TaskPriority = Task["priority"];
+export type TaskPriorityFilter = z.infer<typeof TaskPriorityFilterSchema>;
+export type TaskStatusFilter = z.infer<typeof TaskStatusFilterSchema>;
+export type TaskSortBy = z.infer<typeof TaskSortBySchema>;
+export type TaskSortDirection = z.infer<typeof TaskSortDirectionSchema>;
+export type TaskBoardSort = z.infer<typeof TaskBoardSortSchema>;
 export type CreateTaskInput = z.infer<typeof CreateTaskSchema>;
+export type CreateTaskDraftInput = z.infer<typeof CreateTaskDraftSchema>;
 export type CompleteTaskInput = z.infer<typeof CompleteTaskSchema>;
 export type DeleteTaskInput = z.infer<typeof DeleteTaskSchema>;
 export type ListTasksInput = z.infer<typeof ListTasksSchema>;
 export type UpdateTaskInput = z.infer<typeof UpdateTaskSchema>;
 export type TaskListFilterFormValues = z.infer<typeof TaskListFilterFormSchema>;
 export type TaskBoardFilterFormValues = z.infer<typeof TaskBoardFilterFormSchema>;
+
+export const TASK_PRIORITY_RANK = {
+  high: 0,
+  medium: 1,
+  low: 2,
+} as const satisfies Record<TaskPriority, number>;

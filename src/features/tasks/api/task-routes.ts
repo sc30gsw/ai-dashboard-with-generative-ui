@@ -1,14 +1,14 @@
 import { Result } from "better-result";
 import { Elysia } from "elysia";
 
-import { TaskService } from "~/features/tasks/api/task-service";
 import {
   CompleteTaskSchema,
   CreateTaskSchema,
   DeleteTaskSchema,
   ListTasksSchema,
   UpdateTaskSchema,
-} from "~/features/tasks/model/task-model";
+} from "~/features/tasks/api/task-model";
+import { TaskService } from "~/features/tasks/api/task-service";
 
 export const taskRoutes = new Elysia({ prefix: "/tasks" })
   .get("/list", async () => {

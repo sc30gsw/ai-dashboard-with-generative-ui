@@ -60,7 +60,10 @@ export default defineConfig({
         },
       },
       {
-        files: ["src/features/chat/genui/task-board.tsx"],
+        files: [
+          "src/features/chat/genui/task-board.tsx",
+          "src/features/chat/genui/task-board-fields.tsx",
+        ],
         rules: {
           "react-doctor/no-multi-comp": "off",
           "react-doctor/only-export-components": "off",

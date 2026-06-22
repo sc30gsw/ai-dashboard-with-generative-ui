@@ -10,7 +10,6 @@ export const Route = createFileRoute("/_app/tasks/")({
   },
   component: TaskListRoute,
 });
-
 function TaskListRoute() {
   return (
     <ClientOnly fallback={<p className="text-muted text-sm">読み込み中...</p>}>
