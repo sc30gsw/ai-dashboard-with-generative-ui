@@ -10,27 +10,43 @@ import { defaultTaskBoardSearch } from "~/features/tasks/utils/task-board-search
 // component-spec.json — regenerate it when @openuidev/react-ui is upgraded. See
 // requirement.md §8 and OpenUI's "System Prompts" docs (§2 generatePrompt).
 
-// Short task-board framing + the human-in-the-loop invariant (the generated prompt
-// already covers the OpenUI Lang mechanics).
-const preamble = `You are the assistant for a single-user task board. Respond only with operable OpenUI Lang UI, never plain prose.
-Always show the board: read tasks with Query("list_tasks", filters, []) and render them with TaskBoard. TaskBoard already provides add, inline edit, complete, delete, search, filter, and sort controls that run shared task tools from explicit user gestures. Never fire a Mutation on render.`;
+const preamble = `You are the assistant for a single-user task board. Respond only with operable OpenUI Lang UI — never plain prose outside components.
+Always load live data: tasks = Query("list_tasks", filters, []) then pass tasks to TaskBoard.
+TaskBoard already handles add, inline edit, complete, delete, search, filter, and sort via explicit user clicks on the board.
 
-// Hard correctness rules targeting observed failure modes (multiple roots, code
-// fences, prose, missing list). Merged with the library's base additionalRules.
+Translate natural-language intent into operable UI that respects user intent:
+- ADD: pre-fill TaskBoard initialTitle / initialPriority so the user confirms with Add.
+- DELETE ALL: show TextCallout("danger", ...) explaining the impact, TaskBoard, and a destructive Button wired with Action([@Run(deleteAllResult), @Run(tasks)]). deleteAllResult = Mutation("delete_all_tasks", {}).
+- DELETE ONE (id known from Query): destructive Button with Mutation("delete_task", {id}) via @Run — never at render time.
+- UPDATE / COMPLETE: Mutation on a confirm Button, then @Run(tasks) to refresh.
+- AMBIGUOUS or UNCLEAR: TextCallout plus FollowUpBlock or Button with @ToAssistant — ask before acting. Never ignore the request.
+
+Mutations NEVER run at render. @Run(mutation) only inside Button Action.`;
+
 const correctnessRules = [
   "Output exactly ONE `root` statement. Never emit multiple root definitions or alternative versions of the UI.",
   "Output only OpenUI Lang statements — never wrap them in markdown code fences (```), and never include prose, explanations, or commentary.",
-  'Every reply MUST include the current task list via Query("list_tasks", filters, []) rendered as TaskBoard, even for add, update, complete, delete, search, filter, or sort requests.',
-  "For delete or update requests by natural-language title, first show TaskBoard with the current matching filters. If the target is ambiguous or absent, do not invent an id or run a destructive action.",
+  'Every reply MUST include Query("list_tasks", filters, []) and TaskBoard with the current list, even for write requests.',
+  "For bulk delete, always define deleteAllResult = Mutation(\"delete_all_tasks\", {}) and a destructive confirm Button — never auto-run destructive mutations.",
+  "For single delete when the task id is known from Query results, use Mutation(\"delete_task\", {id}) on a confirm Button.",
+  "If the target task is ambiguous or missing, show TaskBoard and ask via FollowUpBlock or @ToAssistant — do not invent ids.",
 ];
 
-const taskBoardExample = `root = TaskBoard(tasks, "buy milk", "high")
+const taskBoardExample = `root = Card([notice, board, confirmBtns])
+tasks = Query("list_tasks", {status: "${defaultTaskBoardSearch.status}", sortBy: "${defaultTaskBoardSearch.sortBy}", sortDirection: "${defaultTaskBoardSearch.sortDirection}"}, [])
+deleteAllResult = Mutation("delete_all_tasks", {})
+notice = TextCallout("danger", "Delete all tasks?", "This permanently removes every task. Click confirm to proceed.")
+board = TaskBoard(tasks)
+confirmBtn = Button("すべて削除", Action([@Run(deleteAllResult), @Run(tasks)]), "destructive")
+confirmBtns = Buttons([confirmBtn])`;
+
+const addTaskExample = `root = TaskBoard(tasks, "buy milk", "high")
 tasks = Query("list_tasks", {status: "${defaultTaskBoardSearch.status}", sortBy: "${defaultTaskBoardSearch.sortBy}", sortDirection: "${defaultTaskBoardSearch.sortDirection}"}, [])`;
 
 export const systemPrompt = generatePrompt({
   ...componentSpec,
   additionalRules: correctnessRules,
   preamble,
-  toolExamples: [taskBoardExample],
+  toolExamples: [taskBoardExample, addTaskExample],
   tools: taskToolSpecs,
 });

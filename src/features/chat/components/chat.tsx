@@ -1,4 +1,5 @@
 import { useChat } from "@ai-sdk/react";
+import { BuiltinActionType } from "@openuidev/lang-core";
 import { Renderer } from "@openuidev/react-lang";
 import { useForm } from "@tanstack/react-form";
 import { DefaultChatTransport, type UIMessage } from "ai";
@@ -104,6 +105,11 @@ export function Chat() {
               <Renderer
                 isStreaming={isStreaming && message.id === lastMessageId}
                 library={genuiLibrary}
+                onAction={(event) => {
+                  if (event.type === BuiltinActionType.ContinueConversation) {
+                    sendMessage({ text: event.humanFriendlyMessage });
+                  }
+                }}
                 response={messageText(message.parts)}
                 toolProvider={taskToolMap}
               />

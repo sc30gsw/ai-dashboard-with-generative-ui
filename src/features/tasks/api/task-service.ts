@@ -129,4 +129,15 @@ export abstract class TaskService {
       },
     });
   }
+
+  static deleteAll() {
+    return Result.tryPromise({
+      catch: (cause) => new TaskError({ cause, message: "Failed to delete all tasks" }),
+      try: async () => {
+        const deleted = await db.delete(tasks).returning();
+
+        return { deletedCount: deleted.length };
+      },
+    });
+  }
 }

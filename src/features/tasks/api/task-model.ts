@@ -135,9 +135,16 @@ export const DeleteTaskSchema = z.object({
   id: z.string().min(1),
 });
 
+export const DeleteAllTasksSchema = z.object({});
+
+export const DeleteAllTasksOutputSchema = z.object({
+  deletedCount: z.number().int().nonnegative(),
+});
+
 export const TaskModel = {
   completeBody: CompleteTaskSchema,
   createBody: CreateTaskSchema,
+  deleteAllBody: DeleteAllTasksSchema,
   deleteBody: DeleteTaskSchema,
   listBody: ListTasksSchema,
   task: TaskSchema,
@@ -156,6 +163,7 @@ export type CreateTaskInput = z.infer<typeof CreateTaskSchema>;
 export type CreateTaskDraftInput = z.infer<typeof CreateTaskDraftSchema>;
 export type CompleteTaskInput = z.infer<typeof CompleteTaskSchema>;
 export type DeleteTaskInput = z.infer<typeof DeleteTaskSchema>;
+export type DeleteAllTasksOutput = z.infer<typeof DeleteAllTasksOutputSchema>;
 export type ListTasksInput = z.infer<typeof ListTasksSchema>;
 export type UpdateTaskInput = z.infer<typeof UpdateTaskSchema>;
 export type TaskListFilterFormValues = z.infer<typeof TaskListFilterFormSchema>;

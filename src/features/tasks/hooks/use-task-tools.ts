@@ -21,4 +21,7 @@ export function useTaskTools() {
   useRegisteredTaskTool(taskTools[0]);
   useRegisteredTaskTool(taskTools[1]);
   useRegisteredTaskTool(taskTools[2]);
+  useRegisteredTaskTool(taskTools[3]);
+  useRegisteredTaskTool(taskTools[4]);
+  useRegisteredTaskTool(taskTools[5]);
 }

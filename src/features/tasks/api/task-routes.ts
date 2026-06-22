@@ -4,6 +4,7 @@ import { Elysia } from "elysia";
 import {
   CompleteTaskSchema,
   CreateTaskSchema,
+  DeleteAllTasksSchema,
   DeleteTaskSchema,
   ListTasksSchema,
   UpdateTaskSchema,
@@ -72,4 +73,15 @@ export const taskRoutes = new Elysia({ prefix: "/tasks" })
         : { ok: true as const, task: result.value };
     },
     { body: DeleteTaskSchema },
+  )
+  .post(
+    "/delete-all",
+    async () => {
+      const result = await TaskService.deleteAll();
+
+      return Result.isError(result)
+        ? { message: result.error.message, ok: false as const }
+        : { ok: true as const, result: result.value };
+    },
+    { body: DeleteAllTasksSchema },
   );
