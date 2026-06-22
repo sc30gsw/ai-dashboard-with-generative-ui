@@ -3,15 +3,11 @@ import { cn } from "cnfast";
 
 import { PrioritySelect } from "~/features/chat/genui/task-board-priority-select";
 import { TextField } from "~/features/chat/genui/task-board-text-field";
-import {
-  priorityLabels,
-  prioritySchema,
-  priorityTone,
-  type TaskItem,
-} from "~/features/chat/genui/task-board-types";
+import { priorityLabels, prioritySchema, priorityTone } from "~/features/chat/genui/task-board-types";
+import type { TaskBoardItem, TaskView } from "~/features/tasks/api/task-model";
 import { EditTaskFieldsSchema } from "~/features/tasks/api/task-model";
 
-type TaskRowSaveInput = Pick<TaskItem, "priority" | "title">;
+type TaskRowSaveInput = Pick<TaskView, "priority" | "title">;
 
 export type TaskRowProps = {
   isDisabled: boolean;
@@ -21,7 +17,7 @@ export type TaskRowProps = {
   onEdit: () => void;
   onSave: (input: TaskRowSaveInput) => Promise<void> | void;
   onToggleComplete: () => Promise<void> | void;
-  task: TaskItem;
+  task: TaskBoardItem;
 };
 
 export function TaskRow({
@@ -111,7 +107,7 @@ type TaskEditFormProps = {
   isDisabled: boolean;
   onCancel: () => void;
   onSave: (input: TaskRowSaveInput) => Promise<void> | void;
-  task: TaskItem;
+  task: TaskBoardItem;
 };
 
 function TaskEditForm({ isDisabled, onCancel, onSave, task }: TaskEditFormProps) {

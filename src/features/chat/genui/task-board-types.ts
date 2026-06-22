@@ -1,10 +1,14 @@
-import { TaskViewSchema, type TaskPriority, type TaskView } from "~/features/tasks/api/task-model";
+import {
+  TaskViewSchema,
+  TaskViewToolOutputSchema,
+  type TaskPriority,
+  type TaskViewToolOutput,
+} from "~/features/tasks/api/task-model";
 
 export const prioritySchema = TaskViewSchema.shape.priority;
-export const taskItemSchema = TaskViewSchema;
+export const taskItemSchema = TaskViewToolOutputSchema;
 
 export type Priority = TaskPriority;
-export type TaskItem = TaskView;
 
 export const priorityLabels = {
   high: "High",

@@ -29,6 +29,9 @@ export type TaskView = z.infer<typeof TaskViewSchema>;
 export const TaskViewToolOutputSchema = TaskViewSchema.omit({ createdAt: true }).extend({
   createdAt: z.iso.datetime(),
 });
+export type TaskViewToolOutput = z.infer<typeof TaskViewToolOutputSchema>;
+
+export type TaskBoardItem = TaskView | TaskViewToolOutput;
 
 export const TaskPrioritySchema = z.enum(TASK_PRIORITIES);
 export const TaskPriorityFilterSchema = z.enum(TASK_PRIORITY_FILTERS);

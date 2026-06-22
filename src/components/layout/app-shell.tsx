@@ -1,4 +1,3 @@
-import { Button } from "@heroui/react";
 import { Link } from "@tanstack/react-router";
 import { cn } from "cnfast";
 import type { ReactNode } from "react";
@@ -15,14 +14,9 @@ export function AppShell({ children }: Record<"children", ReactNode>) {
   return (
     <div className="bg-background text-foreground flex min-h-screen flex-col">
       <header className="border-border bg-surface border-b px-4 py-3 shadow-sm">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <div>
-            <p className="text-muted text-xs font-medium tracking-wide uppercase">AI Dashboard</p>
-            <h1 className="text-foreground text-lg font-semibold">Task Board</h1>
-          </div>
-          <Button size="sm" variant="secondary">
-            Phase B
-          </Button>
+        <div className="mx-auto max-w-7xl">
+          <p className="text-muted text-xs font-medium tracking-wide uppercase">AI Dashboard</p>
+          <h1 className="text-foreground text-lg font-semibold">Task Board</h1>
         </div>
       </header>
 

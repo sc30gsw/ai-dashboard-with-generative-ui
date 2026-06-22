@@ -20,6 +20,51 @@ function messageText(parts: UIMessage["parts"]) {
   return text;
 }
 
+function ChatLoadingIndicator() {
+  return (
+    <article className="max-w-full">
+      <p className="mb-2 text-xs font-medium tracking-wide text-zinc-500 uppercase">Assistant</p>
+      <div
+        aria-busy="true"
+        aria-label="Assistant is thinking"
+        className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-500 shadow-sm"
+      >
+        <span className="flex gap-1">
+          <span className="size-2 rounded-full bg-zinc-400" />
+          <span className="size-2 rounded-full bg-zinc-300" />
+          <span className="size-2 rounded-full bg-zinc-200" />
+        </span>
+        <span className="animate-pulse">UI生成中...</span>
+      </div>
+    </article>
+  );
+}
+
+function isPendingAssistantResponse(
+  status: "error" | "ready" | "streaming" | "submitted",
+  messages: UIMessage[],
+) {
+  if (status === "submitted") {
+    return true;
+  }
+
+  if (status !== "streaming") {
+    return false;
+  }
+
+  const lastMessage = messages.at(-1);
+
+  if (!lastMessage) {
+    return true;
+  }
+
+  if (lastMessage.role === "user") {
+    return true;
+  }
+
+  return lastMessage.role === "assistant" && messageText(lastMessage.parts).length === 0;
+}
+
 export function Chat() {
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({ api: "/api/chat" }),
@@ -27,6 +72,7 @@ export function Chat() {
 
   const isStreaming = status === "streaming";
   const lastMessageId = messages.at(-1)?.id;
+  const showLoading = isPendingAssistantResponse(status, messages);
 
   const form = useForm({
     defaultValues: { body: "" },
@@ -40,8 +86,17 @@ export function Chat() {
   return (
     <div className="flex flex-col gap-4">
       <div aria-label="Chat history" className="flex flex-col gap-4">
-        {messages.map((message) =>
-          message.role === "assistant" ? (
+        {messages.map((message) => {
+          if (
+            message.role === "assistant" &&
+            showLoading &&
+            message.id === lastMessageId &&
+            messageText(message.parts).length === 0
+          ) {
+            return null;
+          }
+
+          return message.role === "assistant" ? (
             <article className="max-w-full" key={message.id}>
               <p className="mb-2 text-xs font-medium tracking-wide text-zinc-500 uppercase">
                 Assistant
@@ -62,8 +117,9 @@ export function Chat() {
                 <p className="text-sm leading-6 wrap-break-word">{messageText(message.parts)}</p>
               </div>
             </article>
-          ),
-        )}
+          );
+        })}
+        {showLoading ? <ChatLoadingIndicator /> : null}
       </div>
 
       <form

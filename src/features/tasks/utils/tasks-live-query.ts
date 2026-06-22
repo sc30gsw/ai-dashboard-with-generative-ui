@@ -2,9 +2,9 @@ import { and, caseWhen, eq, ilike, type InitialQueryBuilder } from "@tanstack/re
 
 import type {
   ListTasksInput,
+  TaskBoardItem,
   TaskPriorityFilter,
   TaskListFilterFormValues,
-  TaskView,
 } from "~/features/tasks/api/task-model";
 import { TASK_PRIORITY_RANK } from "~/features/tasks/api/task-model";
 import { tasksCollection } from "~/features/tasks/collections/tasks-collection";
@@ -17,7 +17,7 @@ export type TasksQueryFilters = {
   status: ListTasksInput["status"];
 };
 
-export type TaskQueryRow = TaskView;
+export type TaskQueryRow = TaskBoardItem;
 
 export function taskListFiltersToQuery(filters: TaskListFilterFormValues): TasksQueryFilters {
   return {

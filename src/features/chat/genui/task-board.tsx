@@ -33,7 +33,10 @@ import {
 export const TaskBoard = defineComponent({
   name: "TaskBoard",
   props: z.object({
-    tasks: z.array(taskItemSchema),
+    tasks: z.preprocess(
+      (value) => (Array.isArray(value) ? value : []),
+      z.array(taskItemSchema),
+    ),
     initialTitle: z.string().optional(),
     initialPriority: taskItemSchema.shape.priority.optional(),
     initialSearch: z.string().optional(),
@@ -69,7 +72,7 @@ function TaskBoardView({
   } satisfies TaskBoardInitialFilters;
   const filters = resolveTaskBoardFilters(search, initialFilters);
   const queryFilters = listTasksInputToQuery(filters);
-  const initialTasks = taskItemSchema.array().parse(tasks);
+  const initialTasks = taskItemSchema.array().parse(Array.isArray(tasks) ? tasks : []);
   const { data: liveTasks } = useFilteredTasksQuery(queryFilters, {
     groupCompletedLast: true,
   });
