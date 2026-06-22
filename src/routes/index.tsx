@@ -1,5 +1,6 @@
 import { ClientOnly, createFileRoute } from "@tanstack/react-router";
 import { Suspense } from "react";
+
 import { Chat } from "~/features/chat/components/chat";
 import { WebMcpTools } from "~/features/tasks/components/web-mcp-tools";
 
