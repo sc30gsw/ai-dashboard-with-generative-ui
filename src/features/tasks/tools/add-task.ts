@@ -1,4 +1,4 @@
-import { CreateTaskSchema } from "~/features/tasks/schemas/task-schema";
+import { CreateTaskSchema, TaskViewSchema } from "~/features/tasks/schemas/task-schema";
 import type { TaskTool } from "~/features/tasks/tools/tool";
 import { edenClient } from "~/lib/eden";
 
@@ -7,6 +7,7 @@ export const addTaskTool = {
     "Add a new task to the board. Provide a title and a priority (low, medium, or high).",
   inputSchema: CreateTaskSchema,
   name: "add_task",
+  outputSchema: TaskViewSchema,
   run: async (args) => {
     const input = CreateTaskSchema.parse(args);
     const { data, error } = await edenClient().tasks.add.post(input);

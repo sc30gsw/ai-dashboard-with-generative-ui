@@ -1,4 +1,4 @@
-import { CompleteTaskSchema } from "~/features/tasks/schemas/task-schema";
+import { CompleteTaskSchema, TaskViewSchema } from "~/features/tasks/schemas/task-schema";
 import type { TaskTool } from "~/features/tasks/tools/tool";
 import { edenClient } from "~/lib/eden";
 
@@ -6,6 +6,7 @@ export const completeTaskTool = {
   description: "Mark a task as completed by its id.",
   inputSchema: CompleteTaskSchema,
   name: "complete_task",
+  outputSchema: TaskViewSchema,
   run: async (args) => {
     const input = CompleteTaskSchema.parse(args);
     const { data, error } = await edenClient().tasks.complete.post(input);

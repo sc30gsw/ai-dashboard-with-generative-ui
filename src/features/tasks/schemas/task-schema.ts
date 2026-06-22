@@ -3,10 +3,15 @@ import { z } from "zod";
 
 import { PRIORITIES, tasks } from "~/db/schema";
 
-// Task shape derived from the Drizzle table via drizzle-zod (Zod, single validator).
 export const TaskSchema = createSelectSchema(tasks);
 
-// Input boundaries authored in Zod; reused for Elysia body validation AND tool inputSchema.
+export const TaskViewSchema = TaskSchema.pick({
+  completed: true,
+  id: true,
+  priority: true,
+  title: true,
+});
+
 export const CreateTaskSchema = z.object({
   priority: z.enum(PRIORITIES),
   title: z.string().min(1, "Title is required"),
