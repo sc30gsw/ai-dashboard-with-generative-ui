@@ -5,7 +5,7 @@ import { useForm } from "@tanstack/react-form";
 import {
   DefaultChatTransport,
   type InferUITools,
-  lastAssistantMessageIsCompleteWithToolCalls,
+  lastAssistantMessageIsCompleteWithApprovalResponses,
   type ToolUIPart as SdkToolUIPart,
   type UIMessage,
 } from "ai";
@@ -193,6 +193,14 @@ function ToolPartView({ part, onApprove }: ToolPartViewProps) {
     );
   }
 
+  if (part.state === "approval-responded" && part.approval && !part.approval.approved) {
+    return (
+      <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
+        {label}をキャンセルしました。
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-500">
       {label}を準備中...
@@ -205,7 +213,7 @@ export function Chat() {
     onFinish: () => {
       void refetchTasksCollection();
     },
-    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
     transport: new DefaultChatTransport({ api: "/api/chat" }),
   });
 
