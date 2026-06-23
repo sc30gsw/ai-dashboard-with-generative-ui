@@ -19,7 +19,7 @@ export function taskListFilterFormFromSearch(search: ListTasksInput) {
   } satisfies TaskListFilterFormValues;
 }
 
-export function listInputFromTaskListFilterForm(value: TaskListFilterFormValues): ListTasksInput {
+export function listInputFromTaskListFilterForm(value: TaskListFilterFormValues) {
   return ListTasksSchema.parse({
     priority: value.priority === "all" ? undefined : value.priority,
     search: value.search,

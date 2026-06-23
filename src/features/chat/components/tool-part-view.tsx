@@ -50,7 +50,8 @@ export function ToolPartView({ part, onApprove }: ToolPartViewProps) {
   }
 
   if (part.state === "output-available") {
-    const ok = part.output?.status !== "error";
+    //? success を明示判定する。未知/欠落 status を成功扱いしないため `!== "error"` は使わない（R7）。
+    const ok = part.output?.status === "success";
 
     return (
       <Card>

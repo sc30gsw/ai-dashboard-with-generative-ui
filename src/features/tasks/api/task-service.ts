@@ -159,6 +159,12 @@ export abstract class TaskService {
           titleSearchFilter(input.search, input.searchTerms),
         ]);
 
+        //? 空フィルタは and() が undefined になり全件 DELETE になる。delete に confirmAll の概念は無く、
+        //? 真に空のフィルタは正当な用途が無いため拒否する（schema の refine 非依存の防御）。
+        if (filters.length === 0) {
+          throw new Error("Bulk delete requires a filter");
+        }
+
         const deleted = await db
           .delete(tasks)
           .where(and(...filters))

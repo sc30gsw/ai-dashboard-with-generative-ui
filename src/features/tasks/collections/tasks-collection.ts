@@ -68,8 +68,15 @@ export const tasksCollection = createCollection(
         await Promise.all(
           transaction.mutations.map(async (mutation) => {
             const id = String(mutation.key);
+            const changes = mutation.changes;
+            //? completed:true が唯一の変更のときだけ /tasks/complete に流す。title/priority も
+            //? 同時に変わっているなら /tasks/update に全フィールドを送り、編集を取りこぼさない（R5）。
+            const completeOnly =
+              changes.completed === true &&
+              changes.title === undefined &&
+              changes.priority === undefined;
 
-            if (mutation.changes.completed === true) {
+            if (completeOnly) {
               const { data, error } = await edenClient().tasks.complete.post({ id });
 
               if (error) {
@@ -87,10 +94,10 @@ export const tasksCollection = createCollection(
               });
             } else {
               const { data, error } = await edenClient().tasks.update.post({
-                completed: mutation.changes.completed,
+                completed: changes.completed,
                 id,
-                priority: mutation.changes.priority,
-                title: mutation.changes.title,
+                priority: changes.priority,
+                title: changes.title,
               });
 
               if (error) {

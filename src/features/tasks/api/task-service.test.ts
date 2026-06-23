@@ -124,3 +124,28 @@ test("bulkUpdate with confirmAll:true updates every task (#6)", async () => {
     expect(result.value.updatedCount).toBe(4);
   }
 });
+
+test("bulkDelete with an all-undefined filter throws and deletes nothing (R2)", async () => {
+  const { TaskService } = await import("~/features/tasks/api/task-service");
+
+  //? schema の refine をすり抜けても、service 層の防御が空フィルタの全件 DELETE を止める。
+  const result = await TaskService.bulkDelete({ status: "all" });
+
+  expect(Result.isError(result)).toBe(true);
+
+  if (Result.isError(result)) {
+    const cause = result.error.cause;
+    expect(cause instanceof Error ? cause.message : String(cause)).toMatch(/filter/i);
+  }
+
+  const all = await TaskService.list({
+    sortBy: "createdAt",
+    sortDirection: "asc",
+    status: "all",
+  });
+
+  //? ガードにより全件 DELETE は起きず、4件残ったまま。
+  if (Result.isOk(all)) {
+    expect(all.value.length).toBe(4);
+  }
+});

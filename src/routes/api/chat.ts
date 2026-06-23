@@ -38,7 +38,9 @@ async function boardStateContext() {
   const result = await TaskService.list(defaultListTasksSchema);
 
   if (Result.isError(result)) {
-    return "";
+    //? 一時的な DB 失敗で "" を返すと、モデルが空ボードを ground truth と誤認し、実在タスクを
+    //? 「無い」と拒否したり捏造する。空ではなく「不明」と明示し、空断定を防ぐ（R6）。
+    return "## Current board state\nUNAVAILABLE — the board could not be read this turn; do NOT assume it is empty, and do not claim a task does/doesn't exist.";
   }
 
   const tasks = result.value;
@@ -100,7 +102,7 @@ async function handleChat({ request }: Record<"request", Request>) {
     messages: modelMessages,
     model: gateway(chatModel),
     stopWhen: stepCountIs(3),
-    system: boardState ? `${systemPrompt}\n\n${boardState}` : systemPrompt,
+    system: `${systemPrompt}\n\n${boardState}`,
     toolChoice: "auto",
     tools: chatTools,
   });

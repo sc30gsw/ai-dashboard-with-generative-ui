@@ -45,7 +45,9 @@ export function summarizeToolInput(
         ? record.searchTerms.join(" / ")
         : null;
   const status = typeof record.status === "string" ? record.status : null;
+  //? priority = SET 値（更新後の優先度）、priorityFilter = 絞り込み（対象の優先度）。別キーなので個別に読む。
   const priority = typeof record.priority === "string" ? record.priority : null;
+  const priorityFilter = typeof record.priorityFilter === "string" ? record.priorityFilter : null;
 
   const changes: string[] = [];
 
@@ -65,11 +67,21 @@ export function summarizeToolInput(
     return "ボード上のすべてのタスクが対象です。";
   }
 
-  const target =
-    source ??
-    (search ? `「${search}」を含むタスク` : null) ??
-    (status === "completed" ? "完了済みのタスク" : status === "active" ? "未完了のタスク" : null) ??
-    (priority ? `優先度 ${priority} のタスク` : "対象タスク");
+  if (source) {
+    return changes.length > 0 ? `${source}（${changes.join(" / ")}）` : source;
+  }
+
+  //? 対象（スコープ）は有効なフィルタを全て連結して表示する（先勝ちの ?? 連鎖だと複数フィルタが欠ける）。
+  //? bulk_delete_tasks は priority がフィルタとして機能するので、ここでも絞り込み条件に含める。
+  const filterScope = name === "bulk_delete_tasks" ? (priority ?? priorityFilter) : priorityFilter;
+
+  const scopes = [
+    status === "completed" ? "完了済み" : status === "active" ? "未完了" : null,
+    filterScope ? `優先度 ${filterScope}` : null,
+    search ? `「${search}」を含む` : null,
+  ].filter((scope) => scope !== null);
+
+  const target = scopes.length > 0 ? `${scopes.join("・")}のタスク` : "対象タスク";
 
   return changes.length > 0 ? `${target}（${changes.join(" / ")}）` : target;
 }

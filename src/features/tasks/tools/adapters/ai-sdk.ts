@@ -19,9 +19,7 @@ import { TASK_TOOL_POLICY } from "~/features/tasks/tools/defs";
 //* `needsApproval` は defs の単一ポリシーから引く（サーフェス間でドリフトさせない）。
 //* 単一対象ツールは `execute` 内でタイトルから実 id を解決 — モデルは id を書かない（null-id バグを排除）。
 
-type SingleResolution = { error: string } | { task: ReturnType<typeof toTaskView> };
-
-async function resolveSingleTask(sourceTitle: string): Promise<SingleResolution> {
+async function resolveSingleTask(sourceTitle: string) {
   const listed = await TaskService.list(
     ListTasksSchema.parse({ search: sourceTitle, status: "all" }),
   );
@@ -36,9 +34,17 @@ async function resolveSingleTask(sourceTitle: string): Promise<SingleResolution>
     return { error: `「${sourceTitle}」に一致するタスクが見つかりませんでした。` };
   }
 
-  const target = only(filter(tasks, (task) => task.title === sourceTitle)) ?? only(tasks) ?? null;
+  //? 完全一致のみ採用する。承認カードはモデルの sourceTitle を表示するため（実行は execute 前に
+  //? 一時停止し、解決後タイトルを承認時に出せない）、部分一致で別タイトルのタスクを解決すると
+  //? 承認内容と実対象がずれる。完全一致が無ければ見つからない扱いにする（R8）。
+  const exactMatches = filter(tasks, (task) => task.title === sourceTitle);
+  const target = only(exactMatches);
 
   if (!target) {
+    if (exactMatches.length === 0) {
+      return { error: `「${sourceTitle}」に一致するタスクが見つかりませんでした。` };
+    }
+
     return {
       error: `「${sourceTitle}」に複数一致しました。一括操作（まとめて〜）でお試しください。`,
     };
