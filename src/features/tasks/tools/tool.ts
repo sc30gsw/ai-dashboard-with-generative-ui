@@ -8,6 +8,11 @@ export type TaskToolProviderMap = Extract<
 >;
 
 export type TaskTool = Pick<Parameters<typeof useWebMCP>[0], "description" | "name"> & {
+  additive: boolean;
+  destructive: boolean;
+  exposeToWebMcp: boolean;
   inputSchema: ZodType;
+  mutates: boolean;
+  outputSchema: ZodType;
   run: TaskToolProviderMap[string];
 };

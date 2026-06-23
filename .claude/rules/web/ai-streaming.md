@@ -6,7 +6,7 @@ alwaysApply: true
 
 # AI Streaming (Vercel AI SDK + Claude)
 
-> **Status:** The AI SDK is **installed** (`ai` v6, `@ai-sdk/react`) but **no chat endpoint exists yet**. Scaffold per this rule when building it.
+> **Status:** The AI SDK is **installed** and the chat endpoint is implemented at `src/routes/api/chat.ts`.
 
 Generative UI needs an LLM that streams **OpenUI Lang**. We use the **Vercel AI SDK** (`ai` v6) with **Claude accessed through the Vercel AI Gateway** — no direct Anthropic key: one endpoint, usage tracking, and one-line model swaps.
 
@@ -30,24 +30,34 @@ const apiKey = process.env.AI_GATEWAY_API_KEY;
 if (!apiKey) throw new Error("AI_GATEWAY_API_KEY is required");
 ```
 
-## Server: stream OpenUI Lang
+## Server: hybrid streaming (Pattern A writes + Pattern B reads)
 
 The streaming endpoint is a **TanStack Start server route** (raw `Request`/`Response`, not `createServerFn` — RPC functions don't return a streaming `Response`). See the `tanstack-start` skill for route syntax.
 
-**Pattern B (chosen): operable UI.** For Generative UI the model's job is to emit OpenUI Lang containing `Query()` / `Mutation()` nodes — the client `toolProvider` resolves them (see [web/generative-ui.md](./generative-ui.md)). So `streamText` runs **without server-side `tools`** and **without `stopWhen` / `stepCountIs`**: there is no server tool-call loop. The handler body:
+**Hybrid (chosen design):** WRITES go through AI SDK server-side tools (Pattern A). READS still stream OpenUI Lang rendered client-side by `<Renderer>` (Pattern B). Rationale: routing writes through server tools lets `execute` resolve the real task id server-side (from `sourceTitle`), avoiding the null-id bug that occurred when the model was asked to emit ids in `Mutation()` args. `needsApproval: true` on mutating tools is the human-in-the-loop substitute for `Mutation` gesture gating. See `requirement.md §8` for full rationale.
+
+**Validate the incoming request body** before passing to `streamText`. Use `validateUIMessages({ messages, tools })` from the AI SDK to validate `UIMessage[]` (Zod alone cannot faithfully reproduce this shape across SDK versions), plus a thin Zod guard on the outer body object. Return 400 on failure.
 
 ```ts
-import { convertToModelMessages, streamText } from "ai";
+import { convertToModelMessages, stepCountIs, streamText, validateUIMessages } from "ai";
+import { z } from "zod";
+import { chatTools } from "~/features/tasks/tools/adapters/ai-sdk";
 import { chatModel } from "~/features/chat/lib/model"; // single config constant
 import { systemPrompt } from "~/features/chat/lib/system-prompt";
 
+const ChatBodySchema = z.object({ messages: z.array(z.unknown()) });
+
 export async function handleChat(request: Request) {
-  const { messages } = await request.json();
+  const body = ChatBodySchema.parse(await request.json());
+  const { messages } = validateUIMessages({ messages: body.messages, tools: chatTools });
 
   const result = streamText({
-    model: chatModel, // gateway model — no `tools`, no `stopWhen`
-    system: systemPrompt, // enumerates OpenUI components + toolProvider operations
+    model: chatModel,
+    system: systemPrompt,
     messages: convertToModelMessages(messages),
+    tools: chatTools, // AI SDK server-side tools for writes
+    stopWhen: stepCountIs(3), // prevent runaway tool loops
+    toolChoice: "auto",
   });
 
   return result.toUIMessageStreamResponse();
@@ -63,13 +73,16 @@ import { gateway } from "@ai-sdk/gateway";
 // cost-first default; bump to "anthropic/claude-sonnet-4.5" if OpenUI Lang quality drops.
 // verify the exact slug against the Gateway model list.
 export const chatModel = gateway("anthropic/claude-haiku-4.5");
-// or a plain string — the Gateway is the default global provider:
-// export const chatModel = "anthropic/claude-haiku-4.5";
 ```
 
 The `system` prompt is generated from the OpenUI Library so the model knows which components it may emit — see [web/generative-ui.md](./generative-ui.md).
 
-> **Pattern A (fallback only):** classic AI SDK server-side tool-calling — `streamText({ tools, stopWhen: stepCountIs(n) })` — is kept _only_ as a documented fallback if `toolProvider` Query/Mutation resolution proves unreliable on OpenUI. The default is Pattern B above.
+**`needsApproval` policy:**
+
+- `needsApproval: false` — additive tools only (`add_task`, `bulk_add_tasks`): the user's chat message is the explicit intent; additive actions are reversible.
+- `needsApproval: true` — all other mutating tools (`complete_task`, `delete_task`, `bulk_delete_tasks`, `update_task`, etc.). The AI SDK surfaces an approval card before `execute` runs.
+
+> **Pattern B for reads:** `streamText` still emits OpenUI Lang for list/display nodes. The `<Renderer toolProvider={readOnlyToolMap}>` client-side renders them. `toolProvider` is a read-only function map — only `list_tasks` and similar reads are wired here. See [web/generative-ui.md](./generative-ui.md).
 
 ## Client: `useChat` → `<Renderer>`
 

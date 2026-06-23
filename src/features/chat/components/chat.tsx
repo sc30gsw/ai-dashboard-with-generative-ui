@@ -1,38 +1,60 @@
 import { useChat } from "@ai-sdk/react";
-import { Renderer } from "@openuidev/react-lang";
-import { useForm } from "@tanstack/react-form";
-import { DefaultChatTransport } from "ai";
-import { cn } from "cnfast";
+import { toast } from "@heroui/react";
+import type { Renderer } from "@openuidev/react-lang";
+import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
+import type { ComponentProps } from "react";
 
-import { genuiLibrary } from "~/features/chat/genui/library";
+import { AssistantMessage } from "~/features/chat/components/assistant-message";
+import { ChatInputForm } from "~/features/chat/components/chat-input-form";
+import { ChatLoadingIndicator } from "~/features/chat/components/chat-loading-indicator";
+import { UserMessage } from "~/features/chat/components/user-message";
+import { useAppForm } from "~/features/chat/hooks/form";
 import { CreateMessageSchema } from "~/features/chat/schemas/message-schema";
-import { taskToolMap } from "~/features/tasks/tools";
+import { canSendChatMessage, chatUiState } from "~/features/chat/utils/message-parts";
+import { refetchTasksCollection } from "~/features/tasks/collections/tasks-collection";
 
-type MessagePart = { text?: string; type: string };
-
-function messageText(parts: MessagePart[]) {
-  let text = "";
-
-  for (const part of parts) {
-    if (part.type === "text") {
-      text += part.text ?? "";
-    }
-  }
-
-  return text;
-}
+//? レンダーごとに transport を再生成しない（ref が毎回変わると SDK の再初期化を招く）。
+const chatTransport = new DefaultChatTransport({ api: "/api/chat" });
 
 export function Chat() {
-  const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({ api: "/api/chat" }),
+  const { messages, sendMessage, status, error, addToolApprovalResponse } = useChat({
+    onError: (chatError) => {
+      toast.danger(chatError.message || "チャットでエラーが発生しました。");
+    },
+    onFinish: () => {
+      void refetchTasksCollection();
+    },
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
+    transport: chatTransport,
   });
 
-  const isStreaming = status === "streaming";
+  const { hasPendingApproval, isStreaming, lastMessageId, showLoading } = chatUiState(
+    messages,
+    status,
+  );
 
-  const form = useForm({
+  const sendGuard = { hasPendingApproval, isStreaming };
+
+  const trySendMessage = (
+    text: Parameters<
+      NonNullable<ComponentProps<typeof Renderer>["onAction"]>
+    >[0]["humanFriendlyMessage"],
+  ) => {
+    if (!canSendChatMessage(sendGuard)) {
+      return;
+    }
+
+    sendMessage({ text });
+  };
+
+  const form = useAppForm({
     defaultValues: { body: "" },
     validators: { onChange: CreateMessageSchema },
     onSubmit: ({ value }) => {
+      if (!canSendChatMessage(sendGuard)) {
+        return;
+      }
+
       sendMessage({ text: value.body });
       form.reset();
     },
@@ -40,68 +62,35 @@ export function Chat() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3">
+      <div aria-label="Chat history" className="flex flex-col gap-4" role="log">
         {messages.map((message) =>
           message.role === "assistant" ? (
-            <Renderer
-              key={message.id}
+            <AssistantMessage
+              isLastMessage={message.id === lastMessageId}
               isStreaming={isStreaming}
-              library={genuiLibrary}
-              response={messageText(message.parts)}
-              toolProvider={taskToolMap}
+              key={message.id}
+              message={message}
+              onApprove={(id, approved) => addToolApprovalResponse({ approved, id })}
+              onContinueConversation={trySendMessage}
             />
           ) : (
-            <p key={message.id} className="text-right text-gray-700">
-              {messageText(message.parts)}
-            </p>
+            <UserMessage key={message.id} message={message} />
           ),
         )}
+        {showLoading ? <ChatLoadingIndicator /> : null}
       </div>
 
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          void form.handleSubmit();
-        }}
-      >
-        <form.Field name="body">
-          {(field) => (
-            <div className="flex flex-col gap-1">
-              <div className="flex gap-2">
-                <input
-                  aria-label="Chat message"
-                  className={cn("flex-1 rounded-md border px-3 py-2")}
-                  id={field.name}
-                  name={field.name}
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.target.value)}
-                  placeholder="e.g. add a task to buy milk, high priority"
-                  value={field.state.value}
-                />
-                <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
-                  {([canSubmit, isSubmitting]) => (
-                    <button
-                      className={cn(
-                        "rounded-md bg-black px-4 py-2 text-white",
-                        (!canSubmit || isStreaming) && "opacity-50",
-                      )}
-                      disabled={!canSubmit || isStreaming}
-                      type="submit"
-                    >
-                      {isSubmitting ? "..." : "Send"}
-                    </button>
-                  )}
-                </form.Subscribe>
-              </div>
-              {!field.state.meta.isValid && (
-                <em className="text-sm text-red-600" role="alert">
-                  {field.state.meta.errors.map((error) => error?.message).join(", ")}
-                </em>
-              )}
-            </div>
-          )}
-        </form.Field>
-      </form>
+      {error ? (
+        <p className="text-sm text-red-600" role="alert">
+          {error.message || "チャットでエラーが発生しました。"}
+        </p>
+      ) : null}
+
+      <ChatInputForm
+        form={form}
+        hasPendingApproval={hasPendingApproval}
+        isStreaming={isStreaming}
+      />
     </div>
   );
 }

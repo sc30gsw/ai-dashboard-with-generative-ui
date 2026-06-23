@@ -9,12 +9,9 @@ trustPolicyExclude:
   - "nanoid@3.3.14"
   - "semver@6.3.1"
 
-onlyBuiltDependencies:
-  - esbuild
-
 # 公開直後の侵害された可能性のあるリリースを避けるため、公開から1日（1440分）経過したバージョンのみ許可する
 minimumReleaseAge: 1440
 
 allowBuilds:
-  esbuild: set this to true or false
+  esbuild: true
   msgpackr-extract: false
