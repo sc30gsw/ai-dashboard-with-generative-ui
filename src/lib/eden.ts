@@ -2,9 +2,9 @@ import { treaty } from "@elysiajs/eden";
 
 import type { App } from "~/routes/api/$";
 
-// Client-safe Eden entry: `App` is a type-only import, so no server code
-// (Elysia / Drizzle / libsql) is pulled into the client bundle. Used by the
-// UI buttons, Web MCP tool `execute`, and the OpenUI `toolProvider` — one path.
+//* クライアント安全な Eden エントリ: `App` は type-only import のため、サーバーコード
+//* （Elysia / Drizzle / libsql）はクライアントバンドルに含まれない。
+//* UI ボタン、Web MCP tool `execute`、OpenUI `toolProvider` が共通で使用する単一パス。
 export function edenClient() {
   const origin = typeof window === "undefined" ? process.env.API_URL : window.location.origin;
 

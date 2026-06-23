@@ -22,7 +22,7 @@ beforeEach(() => {
 });
 
 test("non-destructive tool runs without requesting confirmation", async () => {
-  // decline would block a destructive tool, but add_task must skip the gate entirely.
+  //? decline は破壊的操作をブロックするが、add_task は確認ゲートを完全にスキップしなければならない。
   await expect(executeWebMcpTool(addTaskTool, { title: "x" }, decline)).resolves.toBe(RESULT);
   expect(runTaskTool).toHaveBeenCalledTimes(1);
 });

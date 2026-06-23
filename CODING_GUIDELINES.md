@@ -58,8 +58,14 @@
 
 ### コメント規約
 
-- 「何をしているか」ではなく「なぜそうしているか」を書く
-- TODO コメントには担当者と期限を記載する: `// TODO(@username 2026-09): ...`
+- コメントは日本語で書く
+- [Better Comments](https://marketplace.visualstudio.com/items?itemName=aaron-bond.better-comments) 形式のプレフィックスを使う:
+  - `//*` — モジュール/セクションの概要
+  - `//?` — 設計判断や「なぜそうしているか」（「何をしているか」ではなく理由を書く）
+  - `//!` — 重要な注意・制約・TODO
+- CSS ではブロックコメントに `/* *` / `/* ?` / `/* !` を使う
+- ツール指令（`/// <reference ...>`、`// @vitest-environment` など）はそのまま維持する
+- TODO コメントには担当者と期限を記載する: `//! TODO(@username 2026-09): ...`
 
 ## 参考リンク
 

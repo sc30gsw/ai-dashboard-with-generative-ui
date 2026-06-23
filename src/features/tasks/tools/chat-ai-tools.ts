@@ -14,10 +14,9 @@ import {
 } from "~/features/tasks/api/task-model";
 import { TaskService } from "~/features/tasks/api/task-service";
 
-/** Model-driven task tools for the chat route. Writes execute server-side via
- * TaskService; destructive ones set `needsApproval` so the AI SDK pauses for an
- * explicit user gesture. Single-target tools resolve the real id from a title
- * inside `execute` — the model never writes an id, which removes the null-id bug. */
+//* チャットルート向けのモデル駆動タスクツール。書き込みは TaskService でサーバー側実行。
+//* 破壊的操作は `needsApproval` を設定し、AI SDK が明示的なユーザー操作まで一時停止する。
+//* 単一対象ツールは `execute` 内でタイトルから実 id を解決 — モデルは id を書かない（null-id バグを排除）。
 
 function toView(task: Pick<Task, "completed" | "id" | "priority" | "title">) {
   return {
@@ -69,7 +68,7 @@ const UpdateTaskToolInputSchema = z
     "Provide at least one field to update",
   );
 
-// Priority defaults to medium so the model never stops to ask the user for it.
+//? ユーザーが優先度を指定しなくてもモデルが止まらないよう、デフォルトは medium。
 const AddTaskToolInputSchema = CreateTaskSchema.extend({
   priority: TaskPrioritySchema.default("medium"),
 });

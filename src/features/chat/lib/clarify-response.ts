@@ -1,7 +1,7 @@
-//* OpenUI Lang helpers: detect and extract model-emitted OpenUI Lang from assistant
-//* message text, so the chat client can route reads to the <Renderer>.
+//* OpenUI Lang ヘルパー: アシスタントメッセージからモデル出力の OpenUI Lang を
+//* 検出・抽出し、チャットクライアントが read を <Renderer> にルーティングできるようにする。
 
-//* Strip markdown fences or leading prose so Renderer receives valid OpenUI Lang.
+//* マークダウンフェンスや先頭の散文を除去し、Renderer が有効な OpenUI Lang を受け取れるようにする。
 export function extractOpenUILang(text: string) {
   const trimmed = text.trim();
 

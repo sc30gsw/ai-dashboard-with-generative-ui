@@ -1,4 +1,4 @@
-/** Escape % and _ for SQL LIKE with backslash escape. */
+//? SQL LIKE 用に % と _ をバックスラッシュでエスケープする。
 export function escapeLikeLiteral(value: string) {
   return value.replace(/[%_\\]/g, "\\$&");
 }

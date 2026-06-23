@@ -2,8 +2,8 @@ import type { InferUITools, ToolUIPart as SdkToolUIPart, UIMessage } from "ai";
 
 import type { chatTools } from "~/features/tasks/tools/chat-ai-tools";
 
-//? Single source of truth: the real per-state tool-part union derived from the
-//? server tool registry (input/output/approval typed per tool), not hand-kept.
+//? 単一の真実: サーバー側ツールレジストリから導出したステート別 tool-part ユニオン
+//? （ツールごとに input/output/approval が型付け）。手書きで同期する必要はない。
 export type ToolUIPart = SdkToolUIPart<InferUITools<typeof chatTools>>;
 
 export function messageText(parts: UIMessage["parts"]) {

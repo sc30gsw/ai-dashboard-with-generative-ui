@@ -40,7 +40,6 @@ export const TaskSortBySchema = z.enum(TASK_SORT_BY_FIELDS);
 export const TaskSortDirectionSchema = z.enum(TASK_SORT_DIRECTIONS);
 export const TaskBoardSortSchema = z.enum(TASK_BOARD_SORTS);
 
-/** Treat null/blank as absent so LLM-generated empty search does not fail validation. */
 const optionalNonEmptyString = z.preprocess(
   (value) =>
     value === null || value === undefined || (typeof value === "string" && value.trim() === "")
@@ -108,7 +107,6 @@ export const BulkDeleteTasksOutputSchema = z.object({
   deletedCount: z.number().int().nonnegative(),
 });
 
-/** Allows empty title while the user is still typing. */
 export const CreateTaskDraftSchema = z.object({
   priority: TaskPrioritySchema,
   title: z.string(),

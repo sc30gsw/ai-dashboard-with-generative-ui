@@ -27,8 +27,8 @@ function useRegisteredTaskTool(tool: TaskTool, elicitInput: ElicitInput) {
 }
 
 export function useTaskTools(elicitInput: ElicitInput) {
-  // Registers exactly the tools flagged `exposeToWebMcp`. Calls are unrolled
-  // (not mapped over an array) to satisfy the rules of hooks.
+  //? `exposeToWebMcp` フラグ付きツールのみを登録する。hooks のルールを満たすため、
+  //? 配列の map ではなく呼び出しを展開している。
   useRegisteredTaskTool(addTaskTool, elicitInput);
   useRegisteredTaskTool(bulkAddTasksTool, elicitInput);
   useRegisteredTaskTool(listTasksTool, elicitInput);

@@ -64,8 +64,8 @@ export default defineConfig({
     rules: {
       ...reactDoctorRules,
       "no-default-export": "error",
-      // TanStack Form (project standard) requires onSubmit + e.preventDefault() +
-      // form.handleSubmit(); this rule is a systematic false positive for it.
+      //! TanStack Form（プロジェクト標準）は onSubmit + e.preventDefault() +
+      //! form.handleSubmit() を要求するため、このルールは体系的な false positive になる。
       "react-doctor/no-prevent-default": "off",
     },
   },
@@ -75,7 +75,7 @@ export default defineConfig({
   plugins: [
     tailwindcss(),
     tanstackStart(),
-    // react's vite plugin must come after start's vite plugin
+    //! react の vite プラグインは start の vite プラグインより後に置く必要がある。
     react(),
     babel({ presets: [reactCompilerPreset()] }),
   ],

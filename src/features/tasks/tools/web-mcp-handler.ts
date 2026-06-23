@@ -5,15 +5,11 @@ import type { TaskTool } from "~/features/tasks/tools/tool";
 
 export type ElicitInput = UseElicitationReturn["elicitInput"];
 
-/**
- * Runs a task tool on the Web MCP surface, gating destructive tools behind an
- * MCP elicitation confirmation. An external agent has no UI click, so the
- * confirmation is requested from the connected client; if the client does not
- * support elicitation, `elicitInput` rejects and we fail safe by refusing.
- *
- * Extracted from `useRegisteredTaskTool` so the gate logic is unit-testable
- * without React or the polyfill.
- */
+//* Web MCP 上でタスクツールを実行し、破壊的操作は MCP elicitation 確認でゲートする。
+//* 外部エージェントには UI クリックがないため、接続クライアントに確認を要求する。
+//* クライアントが elicitation 非対応の場合、`elicitInput` は reject し、安全側で拒否する。
+//*
+//* `useRegisteredTaskTool` から切り出し、React や polyfill なしでゲートロジックをユニットテスト可能にした。
 export async function executeWebMcpTool(
   tool: TaskTool,
   args: Record<string, unknown>,

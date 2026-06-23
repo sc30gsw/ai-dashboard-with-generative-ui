@@ -38,7 +38,7 @@ export const taskList = defineComponent({
     const [priority, setPriority] = useState<(typeof PRIORITY_FILTERS)[number]>("all");
     const [sortKey, setSortKey] = useState<(typeof SORTS)[number]>("default");
 
-    // Plain locals so React Compiler tracks priority / query / sortKey as deps.
+    //? React Compiler が priority / query / sortKey を依存として追跡できるよう、ローカル変数として保持する。
     const normalized = query.trim().toLowerCase();
     const filtered = tasks.filter(
       (task) =>

@@ -9,9 +9,9 @@ import { defaultListTasksSchema } from "~/features/tasks/api/task-model";
 import { TaskService } from "~/features/tasks/api/task-service";
 import { chatTools } from "~/features/tasks/tools/chat-ai-tools";
 
-// The model has no read tool, so writes would otherwise be blind to the board and
-// it may refuse a real task as "not found" (or invent tasks). Inject the live board
-// as ground truth each turn so it calls the right write tool with a real title.
+//? モデルに read ツールがないため、書き込みはボードを見えず、実在タスクを「見つからない」と
+//? 拒否したり、架空タスクを捏造する可能性がある。各ターンでライブボードを
+//? ground truth として注入し、正しいタイトルで適切な write ツールを呼ばせる。
 async function boardStateContext() {
   const result = await TaskService.list(defaultListTasksSchema);
 
@@ -41,9 +41,9 @@ ${lines}
 - Never invent a task name that is not in this list.`;
 }
 
-// Pattern A: model-driven tool selection. Reads → the model emits OpenUI Lang
-// (resolved client-side). Writes → AI SDK tools; destructive ones pause via
-// `needsApproval` until the user approves. No server-side router, no pinning.
+//* パターン A: モデル駆動のツール選択。Read → モデルが OpenUI Lang を出力（クライアント側で解決）。
+//* Write → AI SDK ツール。破壊的操作は `needsApproval` でユーザー承認まで一時停止。
+//* サーバー側ルーターやピン留めなし。
 async function handleChat({ request }: Record<"request", Request>) {
   if (!process.env.AI_GATEWAY_API_KEY) {
     throw new Error("AI_GATEWAY_API_KEY is required");
