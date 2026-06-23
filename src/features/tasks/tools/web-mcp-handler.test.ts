@@ -1,8 +1,9 @@
 import { beforeEach, expect, test, vi } from "vite-plus/test";
 
+import { type ElicitInput, executeWebMcpTool } from "~/features/tasks/tools/adapters/web-mcp";
 import { addTaskTool } from "~/features/tasks/tools/add-task";
 import { deleteAllTasksTool } from "~/features/tasks/tools/delete-all-tasks";
-import { type ElicitInput, executeWebMcpTool } from "~/features/tasks/tools/web-mcp-handler";
+import { listTasksTool } from "~/features/tasks/tools/list-tasks";
 
 const { RESULT, runTaskTool } = vi.hoisted(() => {
   const result = { ok: true };
@@ -21,9 +22,17 @@ beforeEach(() => {
   runTaskTool.mockClear();
 });
 
-test("non-destructive tool runs without requesting confirmation", async () => {
-  //? decline は破壊的操作をブロックするが、add_task は確認ゲートを完全にスキップしなければならない。
-  await expect(executeWebMcpTool(addTaskTool, { title: "x" }, decline)).resolves.toBe(RESULT);
+test("read-only tool runs without requesting confirmation", async () => {
+  //? list_tasks は mutates:false。Web MCP では確認なしで実行できる（decline でも素通り）。
+  await expect(executeWebMcpTool(listTasksTool, {}, decline)).resolves.toBe(RESULT);
+  expect(runTaskTool).toHaveBeenCalledTimes(1);
+});
+
+test("mutating tool runs when the user accepts the elicitation", async () => {
+  //? add_task は additive だが mutates:true。Web MCP では確認を要求する。
+  await expect(
+    executeWebMcpTool(addTaskTool, { priority: "medium", title: "x" }, accept),
+  ).resolves.toBe(RESULT);
   expect(runTaskTool).toHaveBeenCalledTimes(1);
 });
 
@@ -32,12 +41,12 @@ test("destructive tool runs when the user accepts the elicitation", async () => 
   expect(runTaskTool).toHaveBeenCalledTimes(1);
 });
 
-test("destructive tool is refused when the user declines", async () => {
+test("mutating tool is refused when the user declines (run is never called)", async () => {
   await expect(executeWebMcpTool(deleteAllTasksTool, {}, decline)).rejects.toThrow(/canceled/);
   expect(runTaskTool).not.toHaveBeenCalled();
 });
 
-test("destructive tool fails safe when the client cannot elicit", async () => {
+test("mutating tool fails safe when the client cannot elicit", async () => {
   await expect(executeWebMcpTool(deleteAllTasksTool, {}, reject)).rejects.toThrow(/canceled/);
   expect(runTaskTool).not.toHaveBeenCalled();
 });

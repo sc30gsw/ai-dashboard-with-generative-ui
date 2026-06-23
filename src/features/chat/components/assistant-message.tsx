@@ -8,7 +8,7 @@ import { ToolPartView, type ToolPartViewProps } from "~/features/chat/components
 import { genuiLibrary } from "~/features/chat/genui/library";
 import { extractOpenUILang, isOpenUILangResponse } from "~/features/chat/lib/clarify-response";
 import { chatUiState, messageText, toolPartsOf } from "~/features/chat/utils/message-parts";
-import { createReadToolMap } from "~/features/tasks/tools";
+import { createReadToolMap } from "~/features/tasks/tools/adapters/tool-provider";
 
 const readToolMap = createReadToolMap();
 

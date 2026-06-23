@@ -5,7 +5,7 @@ class TaskMutationError extends TaggedError("TaskMutationError")<{
   message: string;
 }>() {}
 
-export function runTaskMutationSync(action: () => void) {
+export function runTaskMutationSync<T>(action: () => Awaited<T>) {
   return Result.try({
     catch: (cause) =>
       new TaskMutationError({

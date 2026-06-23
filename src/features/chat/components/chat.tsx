@@ -1,4 +1,5 @@
 import { useChat } from "@ai-sdk/react";
+import { toast } from "@heroui/react";
 import type { Renderer } from "@openuidev/react-lang";
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
 import type { ComponentProps } from "react";
@@ -12,13 +13,19 @@ import { CreateMessageSchema } from "~/features/chat/schemas/message-schema";
 import { canSendChatMessage, chatUiState } from "~/features/chat/utils/message-parts";
 import { refetchTasksCollection } from "~/features/tasks/collections/tasks-collection";
 
+//? レンダーごとに transport を再生成しない（ref が毎回変わると SDK の再初期化を招く）。
+const chatTransport = new DefaultChatTransport({ api: "/api/chat" });
+
 export function Chat() {
-  const { messages, sendMessage, status, addToolApprovalResponse } = useChat({
+  const { messages, sendMessage, status, error, addToolApprovalResponse } = useChat({
+    onError: (chatError) => {
+      toast.danger(chatError.message || "チャットでエラーが発生しました。");
+    },
     onFinish: () => {
       void refetchTasksCollection();
     },
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
-    transport: new DefaultChatTransport({ api: "/api/chat" }),
+    transport: chatTransport,
   });
 
   const { hasPendingApproval, isStreaming, lastMessageId, showLoading } = chatUiState(
@@ -55,7 +62,7 @@ export function Chat() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div aria-label="Chat history" className="flex flex-col gap-4">
+      <div aria-label="Chat history" className="flex flex-col gap-4" role="log">
         {messages.map((message) =>
           message.role === "assistant" ? (
             <AssistantMessage
@@ -72,6 +79,12 @@ export function Chat() {
         )}
         {showLoading ? <ChatLoadingIndicator /> : null}
       </div>
+
+      {error ? (
+        <p className="text-sm text-red-600" role="alert">
+          {error.message || "チャットでエラーが発生しました。"}
+        </p>
+      ) : null}
 
       <ChatInputForm
         form={form}

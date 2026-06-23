@@ -1,6 +1,7 @@
 import { useWebMCP } from "@mcp-b/react-webmcp";
 import { z } from "zod";
 
+import { type ElicitInput, executeWebMcpTool } from "~/features/tasks/tools/adapters/web-mcp";
 import { addTaskTool } from "~/features/tasks/tools/add-task";
 import { bulkAddTasksTool } from "~/features/tasks/tools/bulk-add-tasks";
 import { bulkDeleteTasksTool } from "~/features/tasks/tools/bulk-delete-tasks";
@@ -11,7 +12,6 @@ import { deleteTaskTool } from "~/features/tasks/tools/delete-task";
 import { listTasksTool } from "~/features/tasks/tools/list-tasks";
 import type { TaskTool } from "~/features/tasks/tools/tool";
 import { updateTaskTool } from "~/features/tasks/tools/update-task";
-import { type ElicitInput, executeWebMcpTool } from "~/features/tasks/tools/web-mcp-handler";
 
 function useRegisteredTaskTool(tool: TaskTool, elicitInput: ElicitInput) {
   const inputSchema = z.toJSONSchema(tool.inputSchema) as Parameters<

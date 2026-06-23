@@ -7,7 +7,7 @@ import { completeTaskTool } from "~/features/tasks/tools/complete-task";
 import { deleteAllTasksTool } from "~/features/tasks/tools/delete-all-tasks";
 import { deleteTaskTool } from "~/features/tasks/tools/delete-task";
 import { listTasksTool } from "~/features/tasks/tools/list-tasks";
-import type { TaskTool, TaskToolProviderMap } from "~/features/tasks/tools/tool";
+import type { TaskTool } from "~/features/tasks/tools/tool";
 import { updateTaskTool } from "~/features/tasks/tools/update-task";
 
 export const taskTools = [
@@ -30,10 +30,4 @@ export async function runTaskTool(tool: TaskTool, args: Record<string, unknown>)
   }
 
   return result;
-}
-
-export function createReadToolMap() {
-  return {
-    [listTasksTool.name]: (args: Record<string, unknown>) => listTasksTool.run(args),
-  } satisfies TaskToolProviderMap;
 }

@@ -6,11 +6,13 @@ import type { TaskTool } from "~/features/tasks/tools/tool";
 import { edenClient } from "~/lib/eden";
 
 export const bulkDeleteTasksTool = {
+  additive: false,
   description:
     "Delete tasks matching priority, search (title substring), searchTerms (OR), or status (completed/active). Use priority for 優先度high/low/medium deletes. Use search for keyword filters — not sourceTitle. Requires confirmation button.",
   destructive: true,
   exposeToWebMcp: true,
   inputSchema: BulkDeleteTasksSchema,
+  mutates: true,
   name: "bulk_delete_tasks",
   outputSchema: BulkDeleteTasksOutputSchema,
   run: async (args: Record<string, unknown>) => {

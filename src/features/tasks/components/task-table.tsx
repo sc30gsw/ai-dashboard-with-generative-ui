@@ -1,4 +1,4 @@
-import { Button, Chip, Table } from "@heroui/react";
+import { Button, Chip, Table, toast } from "@heroui/react";
 import { Link } from "@tanstack/react-router";
 
 import { tasksCollection } from "~/features/tasks/collections/tasks-collection";
@@ -57,8 +57,12 @@ export function TaskTable({
                       size="sm"
                       variant="secondary"
                       onPress={() => {
-                        tasksCollection.update(task.id, (draft) => {
+                        const tx = tasksCollection.update(task.id, (draft) => {
                           draft.completed = true;
+                        });
+
+                        tx.isPersisted.promise.catch(() => {
+                          toast.danger("タスクの完了に失敗しました。");
                         });
                       }}
                     >

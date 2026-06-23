@@ -19,10 +19,13 @@ export function TaskListFilters({
   form,
 }: Record<"form", ReturnType<typeof useTaskListFilters>["form"]>) {
   return (
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+    <fieldset
+      aria-label="Task filters"
+      className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"
+    >
       <form.Field name="status">
         {(field) => (
-          <div aria-label="Task status" className="flex flex-wrap gap-2">
+          <fieldset aria-label="Task status" className="flex flex-wrap gap-2">
             {TASK_STATUS_FILTERS.map((status) => {
               const isSelected = field.state.value === status;
 
@@ -44,7 +47,7 @@ export function TaskListFilters({
                 </Button>
               );
             })}
-          </div>
+          </fieldset>
         )}
       </form.Field>
       <div className="flex flex-col gap-2 sm:flex-row">
@@ -95,6 +98,6 @@ export function TaskListFilters({
           )}
         </form.Field>
       </div>
-    </div>
+    </fieldset>
   );
 }

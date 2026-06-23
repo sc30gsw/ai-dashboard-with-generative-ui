@@ -6,7 +6,7 @@ alwaysApply: true
 
 # Generative UI (OpenUI)
 
-> **Status:** OpenUI is **installed** (`@openuidev/react-lang`, `@openuidev/react-headless`, `@openuidev/react-ui`) but **not yet wired into any feature**. Scaffold per this rule when building the first generative-UI feature.
+> **Status:** OpenUI is **installed** and wired for the chat read/display path. The hybrid design (Pattern A writes via AI SDK tools + Pattern B reads via `<Renderer>`) is the chosen architecture.
 
 This project's core purpose is Generative UI: the LLM returns **operable UI**, not text. We use [OpenUI](https://www.openui.com/docs/openui-lang/quickstart) (`@openuidev/*`) as the rendering layer **with its prebuilt component library** — we do **not** ship our own design system.
 
@@ -101,24 +101,39 @@ import { statCard } from "~/features/chat/genui/components/stat-card";
 export const genuiLibrary = openuiChatLibrary;
 ```
 
-## `toolProvider` — operable UI (Pattern B, chosen)
+## `toolProvider` — READ path only (Pattern B for reads)
 
-This project's chosen interaction model is **operable UI**: the model returns UI that _acts_, not text describing actions. OpenUI Lang emits `Query()` / `Mutation()` nodes and the `<Renderer toolProvider={...}>` prop resolves them at runtime. It accepts a **function map** or an **MCP client** (`@modelcontextprotocol/sdk`).
+`<Renderer toolProvider={...}>` is the **read path**: it wires `Query()` nodes so the `<Renderer>` can auto-fetch list data on render. The `toolProvider` is a **read-only function map** — only `list_tasks` and similar reads are wired here.
 
-Back it with the **same tool map** the app exposes to Web MCP — one registry per feature in `src/features/[feature]/tools/` exposes a `toolMap` (for `toolProvider`) and an array (for `registerTool`). Each tool's `run` calls the **Eden Treaty client** — the same path a UI button calls. Define tools once, feed both surfaces. See [web/web-mcp.md](./web-mcp.md).
+**WRITES are NOT routed through `Mutation()` / `toolProvider`.** In the hybrid design, writes go through AI SDK server-side tools with `needsApproval` (see [web/ai-streaming.md](./ai-streaming.md)). The human-in-the-loop invariant for writes is enforced by the AI SDK approval card, not by requiring a client-side gesture on a `Mutation()` node.
 
 ```tsx
-<Renderer response={text} library={genuiLibrary} toolProvider={toolMap} />
+import { toolProviderMap } from "~/features/tasks/tools/adapters/tool-provider";
+
+<Renderer response={text} library={genuiLibrary} toolProvider={toolProviderMap} />;
 ```
 
-### Invariant: Query auto-resolves, Mutation needs a gesture
+### `toolProvider` adapter
 
-- **`Query()`** (read-only) may resolve automatically on render to populate UI.
-- **`Mutation()`** must run **only on an explicit user gesture** (e.g. a `Button` `onClick`) — **never at render time**.
+The `tool-provider.ts` adapter exposes only read operations:
 
-This keeps the human in the loop and prevents surprise side effects from LLM-generated markup: the model proposes an "Add" card; the _user_ clicks to commit the write. (Mirrors the human-in-the-loop principle in [web/web-mcp.md](./web-mcp.md).)
+```ts
+// ~/features/tasks/tools/adapters/tool-provider.ts
+// Read-only function map for OpenUI <Renderer toolProvider={...}>.
+// Writes go through AI SDK server-side tools — do NOT add mutating tools here.
+export const toolProviderMap = {
+  list_tasks: async (args) => {
+    /* calls Eden client */
+  },
+};
+```
 
-> The exact `toolProvider` / `Query` / `Mutation` runtime API (function-map shape, resolution timing) should be verified against the current `@openuidev/*` versions when wiring the first feature.
+### Invariant: Query auto-resolves; toolProvider is read-only
+
+- **`Query()`** (read-only) may resolve automatically on render to populate list UI.
+- **`Mutation()`** nodes are NOT used for writes in this project. The model should not emit `Mutation()` nodes for task writes; writes are handled by AI SDK tool calls with user approval.
+
+> The `toolProvider` function-map shape is `Record<string, (args) => Promise<unknown>>`. Type it via `Extract<NonNullable<RendererProps["toolProvider"]>, Record<string, unknown>>` — the exported `ToolProvider` type is the MCP-client variant (needs `callTool`), not the function map.
 
 ## Placement
 

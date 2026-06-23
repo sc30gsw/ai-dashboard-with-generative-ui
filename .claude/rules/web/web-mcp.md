@@ -6,7 +6,7 @@ alwaysApply: true
 
 # Web MCP (AI as consumer)
 
-> **Status:** MCP-B is **installed** (`@mcp-b/global`, `@mcp-b/react-webmcp`) but **not yet wired into any feature**. Scaffold per this rule when exposing the first tool.
+> **Status:** MCP-B is **installed** and wired in `src/routes/_app.tsx`. All 9 task tools are exposed via `useWebMCP`.
 
 The other half of this project's purpose: the app exposes its actions as **tools** an in-browser AI agent can call — AI as a _consumer_ of the web, not just a producer. Instead of screenshot/DOM scraping, the agent calls semantic functions.
 
@@ -59,24 +59,51 @@ navigator.modelContext.registerTool(
 
 In React, prefer the `@mcp-b/react-webmcp` hooks so registration follows the component lifecycle (they handle the `AbortSignal` for you). Validate args with Zod inside `execute`; wrap fallible work in `better-result` ([typescript/better-result.md](../typescript/better-result.md)).
 
-## Define tools once — share with OpenUI
+## Single tool registry — defs + adapters
 
-The same tool definitions back **both** the Web MCP surface (`registerTool`) **and** the OpenUI `toolProvider` ([web/generative-ui.md](./generative-ui.md)). Keep one registry per feature and adapt at each edge:
+Tool definitions live **once** in `defs/` and are adapted per surface. No logic is duplicated.
 
 ```
 src/features/tasks/
-├── tools/
-│   ├── add-task.ts     # { name, description, inputSchema (Zod), run }
-│   └── index.ts        # registry: toolMap (OpenUI toolProvider) + array (registerTool)
+└── tools/
+    ├── defs/                 # One meta def per operation: { name, description, inputSchema (Zod), outputSchema (Zod) }
+    │   ├── add-task.ts
+    │   ├── list-tasks.ts     # annotations.readOnlyHint: true
+    │   ├── complete-task.ts
+    │   └── …
+    └── adapters/
+        ├── ai-sdk.ts         # chatTools for streamText; execute calls TaskService in-process on the server
+        ├── web-mcp.ts        # run calls Eden client over HTTP; all mutations gate on elicitation
+        └── tool-provider.ts  # read-only function map for OpenUI <Renderer toolProvider={…}>
 ```
 
-Each tool is `{ name, description, inputSchema (Zod), run }`. `run` calls the **Eden Treaty client** — Web MCP tools run in the browser, so `execute` hits the same Eden HTTP endpoint a UI button hits. `index.ts` exposes a `toolMap` for the OpenUI `toolProvider` and an array for `registerTool`; the `registerTool` adapter sets `inputSchema: z.toJSONSchema(schema)` and wraps `run` in the `{ content: [...] }` shape. Don't duplicate tool logic between the producer and consumer paths.
+### Web MCP adapter: all-mutation elicitation gate
 
-**Validate twice.** `Mutation` args emitted by the LLM and args from an external agent are both untrusted: Zod-parse them at the tool boundary **and** again in the Elysia route body ([web/backend-elysia-drizzle.md](./backend-elysia-drizzle.md), [typescript/zod-validation.md](../typescript/zod-validation.md)).
+The `web-mcp.ts` adapter gates **every mutating tool** on `elicitInput` — not just tools flagged as `destructive`. This is the agent-side analogue of a user gesture (§6 of `requirement.md`) and is robust to new mutating tools being added later (a flag-based gate would let an unguarded destructive tool slip through).
+
+```ts
+// web-mcp.ts adapter — pattern for every mutating tool
+execute: async (args) => {
+  // Gate: elicitation on every mutation (not just destructive)
+  const confirmation = await navigator.modelContext.elicitInput({ ... });
+  if (!confirmation.confirmed) {
+    return { content: [{ type: "text", text: "Cancelled." }] };
+  }
+  const result = await Result.tryPromise({
+    catch: (e) => e as Error,
+    try: () => run(schema.parse(args)), // run calls the Eden client
+  });
+  return result.match({ ... });
+},
+```
+
+The `destructive` flag on a tool def only drives confirmation-dialog **styling** (e.g. danger color). It does not determine whether the gate fires.
+
+**Validate twice.** Tool args from an external agent are untrusted: Zod-parse them at the tool boundary **and** again in the Elysia route body ([web/backend-elysia-drizzle.md](./backend-elysia-drizzle.md), [typescript/zod-validation.md](../typescript/zod-validation.md)).
 
 ## Related rules
 
-- [web/generative-ui.md](./generative-ui.md) — `toolProvider` consumes the same shared tool map (Mutation needs a user gesture)
+- [web/generative-ui.md](./generative-ui.md) — `toolProvider` is the read-only map; writes go through AI SDK tools
 - [web/backend-elysia-drizzle.md](./backend-elysia-drizzle.md) — the Elysia routes / Eden client that `run` calls
 - [typescript/zod-validation.md](../typescript/zod-validation.md) — `inputSchema` authored in Zod
 - [typescript/better-result.md](../typescript/better-result.md) — wrapping `execute`

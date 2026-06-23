@@ -111,13 +111,21 @@ export abstract class TaskService {
       try: async () => {
         const filters = compactFilters([
           ...statusFilters(input),
+          input.priorityFilter ? eq(tasks.priority, input.priorityFilter) : undefined,
           titleSearchFilter(input.search, input.searchTerms),
         ]);
+
+        //? 空フィルタは全件 UPDATE になる。confirmAll が明示されない限り拒否する（schema 非依存の防御）。
+        if (filters.length === 0 && !input.confirmAll) {
+          throw new Error(
+            "Bulk update requires a filter (priorityFilter/status/search) or confirmAll: true",
+          );
+        }
 
         const matching = await db
           .select({ id: tasks.id })
           .from(tasks)
-          .where(and(...filters));
+          .where(filters.length ? and(...filters) : undefined);
 
         if (matching.length === 0) {
           return { tasks: [], updatedCount: 0 };

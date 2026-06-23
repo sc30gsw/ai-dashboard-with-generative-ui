@@ -4,30 +4,22 @@ import { filter, only } from "remeda";
 import { z } from "zod";
 
 import {
+  AddTaskToolInputSchema,
   BulkAddTasksSchema,
   BulkDeleteTasksSchema,
   BulkUpdateTasksSchema,
-  CreateTaskSchema,
   ListTasksSchema,
-  TaskPrioritySchema,
-  type Task,
+  toTaskView,
+  UpdateTaskToolInputSchema,
 } from "~/features/tasks/api/task-model";
 import { TaskService } from "~/features/tasks/api/task-service";
+import { TASK_TOOL_POLICY } from "~/features/tasks/tools/defs";
 
-//* チャットルート向けのモデル駆動タスクツール。書き込みは TaskService でサーバー側実行。
-//* 破壊的操作は `needsApproval` を設定し、AI SDK が明示的なユーザー操作まで一時停止する。
+//* AI SDK アダプタ（パターン A: モデル駆動の書き込み）。書き込みは TaskService でサーバー側実行。
+//* `needsApproval` は defs の単一ポリシーから引く（サーフェス間でドリフトさせない）。
 //* 単一対象ツールは `execute` 内でタイトルから実 id を解決 — モデルは id を書かない（null-id バグを排除）。
 
-function toView(task: Pick<Task, "completed" | "id" | "priority" | "title">) {
-  return {
-    completed: task.completed,
-    id: task.id,
-    priority: task.priority,
-    title: task.title,
-  };
-}
-
-type SingleResolution = { error: string } | { task: ReturnType<typeof toView> };
+type SingleResolution = { error: string } | { task: ReturnType<typeof toTaskView> };
 
 async function resolveSingleTask(sourceTitle: string): Promise<SingleResolution> {
   const listed = await TaskService.list(
@@ -52,32 +44,15 @@ async function resolveSingleTask(sourceTitle: string): Promise<SingleResolution>
     };
   }
 
-  return { task: toView(target) };
+  return { task: toTaskView(target) };
 }
-
-const UpdateTaskToolInputSchema = z
-  .object({
-    completed: z.boolean().optional().describe("Set completion state"),
-    priority: TaskPrioritySchema.optional().describe("New priority"),
-    sourceTitle: z.string().trim().min(1).describe("Current title of the task to update"),
-    title: z.string().trim().min(1).optional().describe("New title (rename)"),
-  })
-  .refine(
-    (value) =>
-      value.title !== undefined || value.priority !== undefined || value.completed !== undefined,
-    "Provide at least one field to update",
-  );
-
-//? ユーザーが優先度を指定しなくてもモデルが止まらないよう、デフォルトは medium。
-const AddTaskToolInputSchema = CreateTaskSchema.extend({
-  priority: TaskPrioritySchema.default("medium"),
-});
 
 export const chatTools = {
   add_task: tool({
     description:
       "Add ONE task. Use for 追加 / 登録 / 作成 of a single task. Provide a title; if the user does not state a priority, default to medium silently — NEVER ask the user to choose a priority. Runs immediately, no approval.",
     inputSchema: AddTaskToolInputSchema,
+    needsApproval: TASK_TOOL_POLICY.add_task.needsApproval,
     execute: async ({ priority, title }) => {
       const result = await TaskService.add({ priority, title });
 
@@ -88,7 +63,7 @@ export const chatTools = {
       return {
         message: `「${result.value.title}」を追加しました。`,
         status: "success" as const,
-        task: toView(result.value),
+        task: toTaskView(result.value),
       };
     },
   }),
@@ -97,6 +72,7 @@ export const chatTools = {
     description:
       "Add SEVERAL tasks at once. Use for AとB追加 or 適当に N件追加 (invent realistic Japanese titles). Each item needs title + priority. Runs immediately, no approval.",
     inputSchema: BulkAddTasksSchema,
+    needsApproval: TASK_TOOL_POLICY.bulk_add_tasks.needsApproval,
     execute: async ({ tasks }) => {
       const result = await TaskService.bulkAdd(tasks);
 
@@ -115,7 +91,7 @@ export const chatTools = {
     description:
       "Update ONE task found by its current title. Use sourceTitle to locate it; set title (rename), priority, and/or completed. Requires user approval.",
     inputSchema: UpdateTaskToolInputSchema,
-    needsApproval: true,
+    needsApproval: TASK_TOOL_POLICY.update_task.needsApproval,
     execute: async ({ sourceTitle, ...fields }) => {
       const resolved = await resolveSingleTask(sourceTitle);
 
@@ -132,7 +108,7 @@ export const chatTools = {
       return {
         message: `「${result.value.title}」を更新しました。`,
         status: "success" as const,
-        task: toView(result.value),
+        task: toTaskView(result.value),
       };
     },
   }),
@@ -143,7 +119,7 @@ export const chatTools = {
     inputSchema: z.object({
       sourceTitle: z.string().trim().min(1).describe("Title of the task to complete"),
     }),
-    needsApproval: true,
+    needsApproval: TASK_TOOL_POLICY.complete_task.needsApproval,
     execute: async ({ sourceTitle }) => {
       const resolved = await resolveSingleTask(sourceTitle);
 
@@ -160,7 +136,7 @@ export const chatTools = {
       return {
         message: `「${result.value.title}」を完了にしました。`,
         status: "success" as const,
-        task: toView(result.value),
+        task: toTaskView(result.value),
       };
     },
   }),
@@ -171,7 +147,7 @@ export const chatTools = {
     inputSchema: z.object({
       sourceTitle: z.string().trim().min(1).describe("Title of the task to delete"),
     }),
-    needsApproval: true,
+    needsApproval: TASK_TOOL_POLICY.delete_task.needsApproval,
     execute: async ({ sourceTitle }) => {
       const resolved = await resolveSingleTask(sourceTitle);
 
@@ -194,9 +170,9 @@ export const chatTools = {
 
   bulk_update_tasks: tool({
     description:
-      "Update MULTIPLE tasks by filter: search/searchTerms (title keywords), status (active/completed), priority. Set title, priority, and/or completed. Use for keyword/status bulk changes (含む〜をlowに / すべて完了に). Requires user approval.",
+      "Update MULTIPLE tasks by filter: search/searchTerms (title keywords), status (active/completed), priorityFilter (target only this priority). Set fields: title, priority (the new priority to assign), completed. NOTE priorityFilter = which tasks to match; priority = the value to set. For 'すべて〜' with no filter, pass confirmAll: true. Requires user approval.",
     inputSchema: BulkUpdateTasksSchema,
-    needsApproval: true,
+    needsApproval: TASK_TOOL_POLICY.bulk_update_tasks.needsApproval,
     execute: async (input) => {
       const result = await TaskService.bulkUpdate(input);
 
@@ -215,7 +191,7 @@ export const chatTools = {
     description:
       "Delete MULTIPLE tasks by filter: search/searchTerms (title keywords), status (active/completed), priority. Use for 含む〜を削除 / 完了タスクを削除 / 優先度highを削除. Requires user approval.",
     inputSchema: BulkDeleteTasksSchema,
-    needsApproval: true,
+    needsApproval: TASK_TOOL_POLICY.bulk_delete_tasks.needsApproval,
     execute: async (input) => {
       const result = await TaskService.bulkDelete(input);
 
@@ -234,7 +210,7 @@ export const chatTools = {
     description:
       "Delete EVERY task on the board. Use ONLY for 全タスク削除 / すべて削除. Irreversible. Requires user approval.",
     inputSchema: z.object({}),
-    needsApproval: true,
+    needsApproval: TASK_TOOL_POLICY.delete_all_tasks.needsApproval,
     execute: async () => {
       const result = await TaskService.deleteAll();
 

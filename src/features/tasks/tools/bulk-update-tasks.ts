@@ -6,11 +6,13 @@ import type { TaskTool } from "~/features/tasks/tools/tool";
 import { edenClient } from "~/lib/eden";
 
 export const bulkUpdateTasksTool = {
+  additive: false,
   description:
-    "Bulk update by search (title substring), searchTerms (OR), or status filter (active/completed). Set title, priority, and/or completed. For keyword filters use search — not sourceTitle. Requires confirmation button.",
+    "Bulk update by search (title substring), searchTerms (OR), priorityFilter (target only that priority), or status filter (active/completed). Set fields: title, priority (new value), completed. priorityFilter selects which tasks; priority sets the value. For full-board updates with no filter pass confirmAll: true. Requires confirmation button.",
   destructive: false,
   exposeToWebMcp: true,
   inputSchema: BulkUpdateTasksSchema,
+  mutates: true,
   name: "bulk_update_tasks",
   outputSchema: BulkUpdateTasksOutputSchema,
   run: async (args) => {

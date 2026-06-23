@@ -1,6 +1,6 @@
 import type { InferUITools, ToolUIPart as SdkToolUIPart } from "ai";
 
-import type { chatTools } from "~/features/tasks/tools/chat-ai-tools";
+import type { chatTools } from "~/features/tasks/tools/adapters/ai-sdk";
 
 type ToolUIPart = SdkToolUIPart<InferUITools<typeof chatTools>>;
 
@@ -15,7 +15,14 @@ export const TOOL_LABELS = {
   update_task: "タスクを更新",
 } as const satisfies Record<keyof typeof chatTools, string>;
 
-export const DESTRUCTIVE_TOOLS = new Set(["bulk_delete_tasks", "delete_all_tasks", "delete_task"]);
+export const DESTRUCTIVE_TOOLS = new Set([
+  "bulk_delete_tasks",
+  "bulk_update_tasks",
+  "delete_all_tasks",
+  "delete_task",
+]);
+
+export const DELETE_TOOLS = new Set(["bulk_delete_tasks", "delete_all_tasks", "delete_task"]);
 
 export function toolNameOf(type: ToolUIPart["type"]) {
   return type.replace(/^tool-/, "");

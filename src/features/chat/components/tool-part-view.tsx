@@ -3,6 +3,7 @@ import { cn } from "cnfast";
 
 import type { ToolUIPart } from "~/features/chat/utils/message-parts";
 import {
+  DELETE_TOOLS,
   DESTRUCTIVE_TOOLS,
   summarizeToolInput,
   TOOL_LABELS,
@@ -21,6 +22,7 @@ export function ToolPartView({ part, onApprove }: ToolPartViewProps) {
   const name = toolNameOf(part.type);
   const label = TOOL_LABELS[name as keyof typeof TOOL_LABELS] ?? name;
   const destructive = DESTRUCTIVE_TOOLS.has(name);
+  const isDelete = DELETE_TOOLS.has(name);
 
   if (part.state === "approval-requested" && part.approval) {
     const approvalId = part.approval.id;
@@ -36,7 +38,7 @@ export function ToolPartView({ part, onApprove }: ToolPartViewProps) {
               onPress={() => onApprove(approvalId, true)}
               variant="primary"
             >
-              {destructive ? "削除する" : "承認"}
+              {isDelete ? "削除する" : "承認"}
             </Button>
             <Button onPress={() => onApprove(approvalId, false)} variant="secondary">
               キャンセル

@@ -1,4 +1,4 @@
-import { Button, Input, ListBox, Select } from "@heroui/react";
+import { Button, Input, ListBox, Select, toast } from "@heroui/react";
 import { useForm } from "@tanstack/react-form";
 import { Result } from "better-result";
 
@@ -34,19 +34,25 @@ export function TaskQuickAdd() {
       onSubmit: CreateTaskSchema,
     },
     onSubmit: ({ value, formApi }) => {
-      const result = runTaskMutationSync(() => {
+      const result = runTaskMutationSync(() =>
         tasksCollection.insert({
           completed: false,
           createdAt: new Date(),
           id: crypto.randomUUID(),
           priority: value.priority,
           title: value.title.trim(),
-        });
-      });
+        }),
+      );
 
       if (Result.isError(result)) {
         return result.error.message;
       }
+
+      //? 楽観的 insert は即時反映。API 失敗時は TanStack DB が自動ロールバックするので、
+      //? ユーザーへは toast でフィードバックする（rejection を握りつぶさない）。
+      result.value.isPersisted.promise.catch(() => {
+        toast.danger("タスクの追加に失敗しました。");
+      });
 
       formApi.reset();
     },

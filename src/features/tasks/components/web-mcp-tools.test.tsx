@@ -5,10 +5,10 @@ import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import { WebMcpTools } from "~/features/tasks/components/web-mcp-tools";
 import type { TaskTool } from "~/features/tasks/tools/tool";
 
-const { addPost } = vi.hoisted(() => ({ addPost: vi.fn() }));
+const { addPost, listPost } = vi.hoisted(() => ({ addPost: vi.fn(), listPost: vi.fn() }));
 
 vi.mock("~/lib/eden", () => ({
-  edenClient: () => ({ tasks: { add: { post: addPost } } }),
+  edenClient: () => ({ tasks: { add: { post: addPost }, list: { post: listPost } } }),
 }));
 vi.mock("~/features/tasks/collections/tasks-collection", () => ({
   refetchTasksCollection: vi.fn(),
@@ -44,6 +44,8 @@ beforeEach(() => {
     data: { ok: true, task: { completed: false, id: "t1", priority: "medium", title: "test" } },
     error: null,
   });
+  listPost.mockReset();
+  listPost.mockResolvedValue({ data: { ok: true, tasks: [] }, error: null });
 });
 afterEach(cleanup);
 
@@ -60,17 +62,29 @@ test("registers every exposed task tool on navigator.modelContext", async () => 
   });
 });
 
-test("calling a non-destructive tool reaches the Eden client", async () => {
+test("calling a read-only tool reaches the Eden client without confirmation", async () => {
   render(<WebMcpTools />);
   await waitFor(() => expect(modelContext().listTools().length).toBeGreaterThan(0));
 
+  //? list_tasks は mutates:false なので elicitation 不要で Eden に到達する。
+  const result = await modelContext().callTool({ arguments: {}, name: "list_tasks" });
+
+  expect(listPost).toHaveBeenCalledTimes(1);
+  expect(result.isError ?? false).toBe(false);
+});
+
+test("a mutating tool is refused when no client can confirm (fail safe)", async () => {
+  render(<WebMcpTools />);
+  await waitFor(() => expect(modelContext().listTools().length).toBeGreaterThan(0));
+
+  //? add_task は mutates:true。確認できるクライアントが無い環境では安全側で拒否し、Eden に到達しない。
   const result = await modelContext().callTool({
     arguments: { priority: "medium", title: "test" },
     name: "add_task",
   });
 
-  expect(addPost).toHaveBeenCalledTimes(1);
-  expect(result.isError ?? false).toBe(false);
+  expect(result.isError).toBe(true);
+  expect(addPost).not.toHaveBeenCalled();
 });
 
 test("a destructive tool is refused when no client can confirm (fail safe)", async () => {

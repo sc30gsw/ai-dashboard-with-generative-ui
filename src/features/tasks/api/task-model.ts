@@ -20,11 +20,22 @@ export const TaskViewSchema = TaskSchema.pick({
 });
 export type TaskView = z.infer<typeof TaskViewSchema>;
 
+//? ツール/承認カードが扱う最小ビュー（createdAt 抜き）への正規化。
+//? AI SDK アダプタ・Web MCP アダプタ双方が共有する単一の変換。
+export function toTaskView(task: Pick<TaskView, "completed" | "id" | "priority" | "title">) {
+  return {
+    completed: task.completed,
+    id: task.id,
+    priority: task.priority,
+    title: task.title,
+  };
+}
+
 export const TaskViewToolOutputSchema = TaskViewSchema.omit({ createdAt: true }).extend({
   createdAt: z.iso.datetime(),
 });
 
-export const TaskPrioritySchema = z.enum(TASK_PRIORITIES);
+const TaskPrioritySchema = z.enum(TASK_PRIORITIES);
 const TaskPriorityFilterSchema = z.enum(TASK_PRIORITY_FILTERS);
 const TaskStatusFilterSchema = z.enum(TASK_STATUS_FILTERS);
 const TaskSortBySchema = z.enum(TASK_SORT_BY_FIELDS);
@@ -43,6 +54,27 @@ export const CreateTaskSchema = z.object({
   title: z.string().trim().min(1, "Title is required"),
 });
 
+//? AI SDK の add_task 入力。ユーザーが優先度を言わなくてもモデルが止まらないよう medium 既定。
+//? eden 経由の addTaskTool は CreateTaskSchema（priority 必須）のまま。
+export const AddTaskToolInputSchema = CreateTaskSchema.extend({
+  priority: TaskPrioritySchema.default("medium"),
+});
+
+//? AI SDK の単一対象 update 入力。モデルは id を書かず sourceTitle で対象を指す
+//? （アダプタが execute 内で実 id を解決）。eden 経由の updateTaskTool は id ベース。
+export const UpdateTaskToolInputSchema = z
+  .object({
+    completed: z.boolean().optional().describe("Set completion state"),
+    priority: TaskPrioritySchema.optional().describe("New priority"),
+    sourceTitle: z.string().trim().min(1).describe("Current title of the task to update"),
+    title: z.string().trim().min(1).optional().describe("New title (rename)"),
+  })
+  .refine(
+    (value) =>
+      value.title !== undefined || value.priority !== undefined || value.completed !== undefined,
+    "Provide at least one field to update",
+  );
+
 const BulkAddTaskItemSchema = CreateTaskSchema.extend({
   completed: z.boolean().optional(),
 });
@@ -58,8 +90,13 @@ export const BulkAddTasksOutputSchema = z.object({
 
 export const BulkUpdateTasksSchema = z
   .object({
+    //? 全件適用（フィルタなし）の明示意図。未指定で filters が空なら service 層が throw する。
+    confirmAll: z.boolean().optional(),
     completed: z.boolean().optional(),
+    //? 設定値（SET）: 一致タスクをこの priority にする。
     priority: TaskPrioritySchema.optional(),
+    //? 絞り込み（FILTER）: この priority のタスクだけを対象にする。priority(SET) とは別キー。
+    priorityFilter: TaskPrioritySchema.optional(),
     search: optionalNonEmptyString,
     searchTerms: z.array(z.string().trim().min(1)).min(1).optional(),
     status: TaskStatusFilterSchema.default("all"),

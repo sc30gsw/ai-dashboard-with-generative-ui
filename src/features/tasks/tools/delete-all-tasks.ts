@@ -3,11 +3,13 @@ import type { TaskTool } from "~/features/tasks/tools/tool";
 import { edenClient } from "~/lib/eden";
 
 export const deleteAllTasksTool = {
+  additive: false,
   description:
     "Permanently delete every task on the board. Use only after the user confirms via a destructive button.",
   destructive: true,
   exposeToWebMcp: true,
   inputSchema: DeleteAllTasksSchema,
+  mutates: true,
   name: "delete_all_tasks",
   outputSchema: DeleteAllTasksOutputSchema,
   run: async (args) => {

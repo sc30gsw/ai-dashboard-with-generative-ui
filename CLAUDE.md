@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **API layer:** Elysia, mounted inside TanStack Start at `src/routes/api.$.ts` via `app.fetch(request)` (runs on **Node**, not a standalone Bun server); client access via **Eden Treaty**.
 - **Data:** Drizzle ORM + Turso (libsql); schema↔validation bridge via `drizzle-zod`. Zod stays the single validator (Elysia consumes Zod via Standard Schema — no TypeBox).
 - **LLM:** Vercel AI Gateway (`AI_GATEWAY_API_KEY`, server-only); model `anthropic/claude-haiku-4.5` kept in one config constant (swappable to `anthropic/claude-sonnet-4.5`).
-- **Generative UI:** Pattern B — operable UI via OpenUI `toolProvider`; `streamText` runs without server-side tools and emits OpenUI Lang.
+- **Generative UI:** Hybrid — WRITES via AI SDK server-side tools (`streamText({ tools, stopWhen: stepCountIs(3) })`; mutating tools use `needsApproval: true`, additive tools `needsApproval: false`); READS via OpenUI `<Renderer toolProvider={readOnlyMap}>` rendering streamed OpenUI Lang. Rationale: routing writes through AI SDK tools lets the server resolve real task ids (avoiding a null-id bug from pure Pattern B) and uses the AI SDK approval card as the human-in-the-loop gate. See `requirement.md §8` for full rationale.
 - **Toolchain:** pnpm + Vite+ (`vp`) retained; **Bun is explicitly NOT adopted.**
 
 ## Behavioral Guidelines

@@ -1,6 +1,11 @@
-import type { InferUITools, ToolUIPart as SdkToolUIPart, UIMessage } from "ai";
+import {
+  isToolUIPart,
+  type InferUITools,
+  type ToolUIPart as SdkToolUIPart,
+  type UIMessage,
+} from "ai";
 
-import type { chatTools } from "~/features/tasks/tools/chat-ai-tools";
+import type { chatTools } from "~/features/tasks/tools/adapters/ai-sdk";
 
 //? 単一の真実: サーバー側ツールレジストリから導出したステート別 tool-part ユニオン
 //? （ツールごとに input/output/approval が型付け）。手書きで同期する必要はない。
@@ -19,7 +24,9 @@ export function messageText(parts: UIMessage["parts"]) {
 }
 
 export function toolPartsOf(parts: UIMessage["parts"]) {
-  return parts.filter((part) => part.type.startsWith("tool-")) as unknown as ToolUIPart[];
+  //? v6 の型ガードで tool-* parts のみへ絞り込む（unknown キャストを排除）。
+  //? 静的ツール union（chatTools 由来）へさらに narrow する。
+  return parts.filter(isToolUIPart) as ToolUIPart[];
 }
 
 type ChatStatus = "error" | "ready" | "streaming" | "submitted";

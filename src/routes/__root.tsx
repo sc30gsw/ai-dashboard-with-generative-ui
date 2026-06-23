@@ -1,4 +1,5 @@
 /// <reference types="vite-plus/client" />
+import { Toast } from "@heroui/react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
@@ -7,11 +8,11 @@ import { Suspense, lazy } from "react";
 import "@openuidev/react-ui/index.css";
 import { queryClient } from "~/lib/query-client";
 
-import appCss from "../styles.css?url";
+import appCss from "~/styles.css?url";
 
 const TanStackRouterDevtools = import.meta.env.DEV
   ? lazy(async () => {
-      const { TanStackRouterDevtools } = await import("../router-devtools");
+      const { TanStackRouterDevtools } = await import("~/router-devtools");
       return { default: TanStackRouterDevtools };
     })
   : null;
@@ -40,6 +41,7 @@ function RootComponent() {
       <body>
         <QueryClientProvider client={queryClient}>
           <Outlet />
+          <Toast.Provider />
         </QueryClientProvider>
         {TanStackRouterDevtools ? (
           <Suspense fallback={null}>
