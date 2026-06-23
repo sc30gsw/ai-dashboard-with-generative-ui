@@ -1,4 +1,4 @@
-import { generatePrompt, type ToolSpec } from "@openuidev/lang-core";
+import { generatePrompt, type ComponentPromptSpec, type ToolSpec } from "@openuidev/lang-core";
 import { z } from "zod";
 
 import componentSpec from "~/features/chat/genui/component-spec.json";
@@ -10,7 +10,7 @@ const defaultListQuery = `{status: "${defaultTaskBoardSearch.status}", sortBy: "
 const preamble = `You are the assistant for a single-user task board. Choose ONE response mode per request:
 
 ## Mode 1 — READ (show / list / filter / count): respond with operable OpenUI Lang UI
-Render read-only UI from Query("list_tasks", ...). Use Card / CardHeader / Table / Callout / TextContent. NEVER write prose for a read — render UI.
+Render read-only UI from Query("list_tasks", ...). Render the task rows with TaskList(tasks) — it has a built-in search box and priority/done chips, so prefer it over a raw Table for tasks. Use Card / CardHeader / TaskList / Callout / TextContent. NEVER write prose for a read — render UI.
 
 - First line MUST be exactly: root = ...
 - No markdown fences and no prose before root =
@@ -37,23 +37,23 @@ Write tools:
 - 完了済み / 未完了 → status "completed" / "active" (not a title search).
 - When the user names a task in a previous turn and then gives a follow-up ("これを完了に", "これらをlowに"), reuse that title/keyword for the tool.`;
 
-const readListExample = `root = Card([hdr, count, tbl])
+const readListExample = `root = Card([hdr, count, list])
 tasks = Query("list_tasks", ${defaultListQuery}, [])
 hdr = CardHeader("タスク一覧", "現在のタスク")
 count = TextContent("合計 " + @Count(tasks) + " 件")
-tbl = Table([Col("Title", tasks.title), Col("Priority", tasks.priority), Col("Done", tasks.completed)])`;
+list = TaskList(tasks)`;
 
-const filterListExample = `root = Card([hdr, count, tbl])
+const filterListExample = `root = Card([hdr, count, list])
 tasks = Query("list_tasks", {priority: "high", status: "all", sortBy: "createdAt", sortDirection: "asc"}, [])
 hdr = CardHeader("優先度 High", "High に設定されたタスク")
 count = TextContent("該当 " + @Count(tasks) + " 件")
-tbl = Table([Col("Title", tasks.title), Col("Priority", tasks.priority), Col("Done", tasks.completed)])`;
+list = TaskList(tasks)`;
 
-const statusListExample = `root = Card([hdr, count, tbl])
+const statusListExample = `root = Card([hdr, count, list])
 tasks = Query("list_tasks", {status: "active", sortBy: "createdAt", sortDirection: "asc"}, [])
 hdr = CardHeader("未完了タスク", "未完了のタスク一覧")
 count = TextContent("未完了 " + @Count(tasks) + " 件")
-tbl = Table([Col("Title", tasks.title), Col("Priority", tasks.priority)])`;
+list = TaskList(tasks)`;
 
 const listToolSpec = {
   annotations: { readOnlyHint: true },
@@ -63,8 +63,24 @@ const listToolSpec = {
   outputSchema: z.toJSONSchema(listTasksTool.outputSchema),
 } as const satisfies ToolSpec;
 
+const taskListSpec = {
+  description:
+    "Task list with a built-in search box and priority/done status chips. Use this INSTEAD of Table to show, list, or filter tasks. Pass the list_tasks Query result array as the single argument.",
+  signature:
+    'TaskList(tasks: { id: string, title: string, priority: "low" | "medium" | "high", completed: boolean }[])',
+} as const satisfies ComponentPromptSpec;
+
 export const systemPrompt = generatePrompt({
   ...componentSpec,
+  componentGroups: [
+    ...(componentSpec.componentGroups ?? []),
+    {
+      components: ["TaskList"],
+      name: "Task domain",
+      notes: ["Use TaskList (not Table) for showing/listing/filtering tasks."],
+    },
+  ],
+  components: { ...componentSpec.components, TaskList: taskListSpec },
   preamble,
   toolExamples: [readListExample, filterListExample, statusListExample],
   tools: [listToolSpec],

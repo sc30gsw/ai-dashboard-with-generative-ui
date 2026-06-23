@@ -48,3 +48,7 @@ export function chatUiState(messages: UIMessage[], status: ChatStatus) {
     showLoading,
   };
 }
+
+export function canSendChatMessage(options: { hasPendingApproval: boolean; isStreaming: boolean }) {
+  return !options.hasPendingApproval && !options.isStreaming;
+}
