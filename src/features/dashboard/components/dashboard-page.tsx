@@ -1,6 +1,7 @@
 import { Card } from "@heroui/react";
 import { Link } from "@tanstack/react-router";
 import { Suspense, lazy } from "react";
+import { countBy, partition, take } from "remeda";
 
 import { TASK_PRIORITIES, type TaskPriority } from "~/features/tasks/api/task-model";
 import { PriorityChip } from "~/features/tasks/components/priority-chip";
@@ -53,17 +54,22 @@ export function DashboardPage() {
   const { data: tasks } = useAllTasksQuery("desc");
 
   const rows = tasks ?? [];
+  const [, openTasks] = partition(rows, (task) => task.completed);
+
+  const byPriority = countBy(rows, (task) => task.priority);
   const stats = {
-    completed: rows.filter((task) => task.completed).length,
-    highPriority: rows.filter((task) => task.priority === "high" && !task.completed).length,
-    open: rows.filter((task) => !task.completed).length,
+    completed: rows.length - openTasks.length,
+    highPriority: openTasks.filter((task) => task.priority === "high").length,
+    open: openTasks.length,
     total: rows.length,
   } as const satisfies Record<string, number>;
+
   const priorityChartData = TASK_PRIORITIES.map((priority) => ({
-    count: rows.filter((task) => task.priority === priority).length,
+    count: byPriority[priority] ?? 0,
     priority,
   }));
-  const recentTasks = rows.slice(0, 5);
+
+  const recentTasks = take(rows, 5);
 
   return (
     <div className="flex flex-col gap-6">

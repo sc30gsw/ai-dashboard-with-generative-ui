@@ -1,5 +1,6 @@
 import { tool, type ToolSet } from "ai";
 import { Result } from "better-result";
+import { filter, only } from "remeda";
 import { z } from "zod";
 
 import {
@@ -44,8 +45,7 @@ async function resolveSingleTask(sourceTitle: string): Promise<SingleResolution>
     return { error: `「${sourceTitle}」に一致するタスクが見つかりませんでした。` };
   }
 
-  const exact = tasks.filter((task) => task.title === sourceTitle);
-  const target = exact.length === 1 ? exact[0] : tasks.length === 1 ? tasks[0] : null;
+  const target = only(filter(tasks, (task) => task.title === sourceTitle)) ?? only(tasks) ?? null;
 
   if (!target) {
     return {

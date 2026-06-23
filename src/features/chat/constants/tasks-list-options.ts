@@ -1,10 +1,5 @@
 import type { TaskRow } from "~/features/chat/schemas/task-list-schema";
 
-export const PRIORITY_RANK = { high: 0, medium: 1, low: 2 } as const satisfies Record<
-  TaskRow["priority"],
-  number
->;
-
 export const PRIORITY_FILTERS = ["all", "high", "medium", "low"] as const satisfies readonly (
   | TaskRow["priority"]
   | "all"

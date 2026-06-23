@@ -1,5 +1,6 @@
 import { Result, TaggedError } from "better-result";
 import { and, asc, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { filter, isDefined, pickBy } from "remeda";
 
 import { db } from "~/db";
 import { tasks } from "~/db/schema";
@@ -59,11 +60,22 @@ function titleSearchFilter(search?: string, searchTerms?: string[]) {
   return undefined;
 }
 
+function compactFilters<T>(items: (T | undefined)[]) {
+  return filter(items, isDefined);
+}
+
 function statusFilters(input: { status: ListTasksInput["status"] }) {
-  return [
+  return compactFilters([
     input.status === "active" ? eq(tasks.completed, false) : undefined,
     input.status === "completed" ? eq(tasks.completed, true) : undefined,
-  ].filter((filter) => filter !== undefined);
+  ]);
+}
+
+function taskUpdates(input: Pick<BulkUpdateTasksInput, "completed" | "priority" | "title">) {
+  return pickBy(
+    { completed: input.completed, priority: input.priority, title: input.title },
+    (value) => value !== undefined,
+  );
 }
 
 export abstract class TaskService {
@@ -97,10 +109,10 @@ export abstract class TaskService {
     return Result.tryPromise({
       catch: (cause) => new TaskError({ cause, message: "Failed to bulk update tasks" }),
       try: async () => {
-        const filters = [
+        const filters = compactFilters([
           ...statusFilters(input),
           titleSearchFilter(input.search, input.searchTerms),
-        ].filter((filter) => filter !== undefined);
+        ]);
 
         const matching = await db
           .select({ id: tasks.id })
@@ -111,19 +123,7 @@ export abstract class TaskService {
           return { tasks: [], updatedCount: 0 };
         }
 
-        const updates: Partial<Pick<Task, "completed" | "priority" | "title">> = {};
-
-        if (input.title !== undefined) {
-          updates.title = input.title;
-        }
-
-        if (input.priority !== undefined) {
-          updates.priority = input.priority;
-        }
-
-        if (input.completed !== undefined) {
-          updates.completed = input.completed;
-        }
+        const updates = taskUpdates(input);
 
         const updated = await db
           .update(tasks)
@@ -145,11 +145,11 @@ export abstract class TaskService {
     return Result.tryPromise({
       catch: (cause) => new TaskError({ cause, message: "Failed to bulk delete tasks" }),
       try: async () => {
-        const filters = [
+        const filters = compactFilters([
           ...statusFilters(input),
           input.priority ? eq(tasks.priority, input.priority) : undefined,
           titleSearchFilter(input.search, input.searchTerms),
-        ].filter((filter) => filter !== undefined);
+        ]);
 
         const deleted = await db
           .delete(tasks)
@@ -165,12 +165,12 @@ export abstract class TaskService {
     return Result.tryPromise({
       catch: (cause) => new TaskError({ cause, message: "Failed to list tasks" }),
       try: () => {
-        const filters = [
+        const filters = compactFilters([
           input.status === "active" ? eq(tasks.completed, false) : undefined,
           input.status === "completed" ? eq(tasks.completed, true) : undefined,
           input.priority ? eq(tasks.priority, input.priority) : undefined,
           titleSearchFilter(input.search, input.searchTerms),
-        ].filter((filter) => filter !== undefined);
+        ]);
 
         return db
           .select()
@@ -204,19 +204,7 @@ export abstract class TaskService {
     return Result.tryPromise({
       catch: (cause) => new TaskError({ cause, message: "Failed to update task" }),
       try: async () => {
-        const updates: Partial<Pick<Task, "completed" | "priority" | "title">> = {};
-
-        if (input.title !== undefined) {
-          updates.title = input.title;
-        }
-
-        if (input.priority !== undefined) {
-          updates.priority = input.priority;
-        }
-
-        if (input.completed !== undefined) {
-          updates.completed = input.completed;
-        }
+        const updates = taskUpdates(input);
 
         const [task] = await db
           .update(tasks)

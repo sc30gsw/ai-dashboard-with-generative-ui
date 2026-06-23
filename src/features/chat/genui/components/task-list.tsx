@@ -1,16 +1,16 @@
 import { type ComponentRenderProps, defineComponent } from "@openuidev/react-lang";
 import { cn } from "cnfast";
 import { useState } from "react";
-import { sort } from "remeda";
+import { filter, pipe, sort } from "remeda";
 
 import {
   PRIORITY_FILTER_LABELS,
   PRIORITY_FILTERS,
-  PRIORITY_RANK,
   SORT_LABELS,
   SORTS,
 } from "~/features/chat/constants/tasks-list-options";
 import { taskListPropsSchema, type TaskRow } from "~/features/chat/schemas/task-list-schema";
+import { TASK_PRIORITY_RANK } from "~/features/tasks/api/task-model";
 
 const PRIORITY_CHIP = {
   high: "bg-red-500/20 text-red-200 ring-red-400/30",
@@ -25,7 +25,7 @@ const DONE_CHIP = {
 
 function sortTasks(tasks: TaskRow[], sortKey: (typeof SORTS)[number]) {
   if (sortKey === "priority") {
-    return sort(tasks, (a, b) => PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority]);
+    return sort(tasks, (a, b) => TASK_PRIORITY_RANK[a.priority] - TASK_PRIORITY_RANK[b.priority]);
   }
 
   if (sortKey === "title") {
@@ -41,16 +41,17 @@ export const taskList = defineComponent({
 
     const [query, setQuery] = useState("");
     const [priority, setPriority] = useState<(typeof PRIORITY_FILTERS)[number]>("all");
-    const [sort, setSort] = useState<(typeof SORTS)[number]>("default");
+    const [sortKey, setSortKey] = useState<(typeof SORTS)[number]>("default");
 
     const normalized = query.trim().toLowerCase();
-    const visible = sortTasks(
-      tasks.filter(
+    const visible = pipe(
+      tasks,
+      filter(
         (task) =>
           (priority === "all" || task.priority === priority) &&
           (!normalized || task.title.toLowerCase().includes(normalized)),
       ),
-      sort,
+      (filtered) => sortTasks(filtered, sortKey),
     );
 
     return (
@@ -88,8 +89,8 @@ export const taskList = defineComponent({
             className={
               "min-h-9 rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-zinc-50 outline-offset-2 placeholder:text-zinc-400 focus-visible:outline-2 focus-visible:outline-white/60 [&>option]:text-zinc-900"
             }
-            onChange={(event) => setSort(event.target.value as (typeof SORTS)[number])}
-            value={sort}
+            onChange={(event) => setSortKey(event.target.value as (typeof SORTS)[number])}
+            value={sortKey}
           >
             {SORTS.map((value) => (
               <option key={value} value={value}>
