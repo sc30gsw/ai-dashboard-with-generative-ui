@@ -5,6 +5,8 @@ import { edenClient } from "~/lib/eden";
 export const deleteAllTasksTool = {
   description:
     "Permanently delete every task on the board. Use only after the user confirms via a destructive button.",
+  destructive: true,
+  exposeToWebMcp: true,
   inputSchema: DeleteAllTasksSchema,
   name: "delete_all_tasks",
   outputSchema: DeleteAllTasksOutputSchema,

@@ -5,6 +5,8 @@ import { edenClient } from "~/lib/eden";
 export const completeTaskTool = {
   description:
     "Mark a task as completed by id. Use Mutation(complete_task, {}) in UI — server pins id on click.",
+  destructive: false,
+  exposeToWebMcp: true,
   inputSchema: CompleteTaskSchema,
   name: "complete_task",
   outputSchema: TaskViewToolOutputSchema,

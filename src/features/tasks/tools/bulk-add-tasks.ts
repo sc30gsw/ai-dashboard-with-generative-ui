@@ -5,6 +5,8 @@ import { edenClient } from "~/lib/eden";
 export const bulkAddTasksTool = {
   description:
     "Add multiple tasks in one operation. Provide a tasks array with title and priority for each item. Use for bulk registration, repeated titles, or sample/random tasks — invent appropriate titles when the user asks for サンプル/ランダム/適当.",
+  destructive: false,
+  exposeToWebMcp: true,
   inputSchema: BulkAddTasksSchema,
   name: "bulk_add_tasks",
   outputSchema: BulkAddTasksOutputSchema,

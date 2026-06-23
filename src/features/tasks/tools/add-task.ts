@@ -5,6 +5,8 @@ import { edenClient } from "~/lib/eden";
 export const addTaskTool = {
   description:
     "Add a new task to the board. Provide a title and a priority (low, medium, or high).",
+  destructive: false,
+  exposeToWebMcp: true,
   inputSchema: CreateTaskSchema,
   name: "add_task",
   outputSchema: TaskViewToolOutputSchema,

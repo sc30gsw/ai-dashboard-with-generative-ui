@@ -8,6 +8,8 @@ import { edenClient } from "~/lib/eden";
 export const bulkUpdateTasksTool = {
   description:
     "Bulk update by search (title substring), searchTerms (OR), or status filter (active/completed). Set title, priority, and/or completed. For keyword filters use search — not sourceTitle. Requires confirmation button.",
+  destructive: false,
+  exposeToWebMcp: true,
   inputSchema: BulkUpdateTasksSchema,
   name: "bulk_update_tasks",
   outputSchema: BulkUpdateTasksOutputSchema,

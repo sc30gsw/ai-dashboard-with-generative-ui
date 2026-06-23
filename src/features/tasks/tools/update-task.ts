@@ -5,6 +5,8 @@ import { edenClient } from "~/lib/eden";
 export const updateTaskTool = {
   description:
     "Update one task by id (title, priority, completed). Requires user confirmation. For rename use sourceTitle to find + title for new value.",
+  destructive: false,
+  exposeToWebMcp: true,
   inputSchema: UpdateTaskSchema,
   name: "update_task",
   outputSchema: TaskViewToolOutputSchema,

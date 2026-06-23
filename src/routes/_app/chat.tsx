@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Suspense } from "react";
 
 import { Chat } from "~/features/chat/components/chat";
-import { WebMcpTools } from "~/features/tasks/components/web-mcp-tools";
 
 function RoutePending() {
   return <p className="text-muted text-sm">読み込み中...</p>;
@@ -23,7 +22,6 @@ function ChatPage() {
         </p>
       </div>
       <Suspense fallback={<p className="text-muted text-sm">読み込み中...</p>}>
-        <WebMcpTools />
         <Chat />
       </Suspense>
     </div>

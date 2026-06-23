@@ -6,6 +6,8 @@ import { edenClient } from "~/lib/eden";
 
 export const listTasksTool = {
   description: "List tasks on the board. Supports search, status, priority, and sorting filters.",
+  destructive: false,
+  exposeToWebMcp: true,
   inputSchema: ListTasksSchema,
   name: "list_tasks",
   outputSchema: z.array(TaskViewToolOutputSchema),
