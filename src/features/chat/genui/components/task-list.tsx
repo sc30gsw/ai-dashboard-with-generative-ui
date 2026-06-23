@@ -1,7 +1,7 @@
+import { Button, Card, Chip, CloseIcon, Input, ListBox, Select, Table } from "@heroui/react";
 import { type ComponentRenderProps, defineComponent } from "@openuidev/react-lang";
-import { cn } from "cnfast";
 import { useState } from "react";
-import { filter, pipe, sort } from "remeda";
+import { sort } from "remeda";
 
 import {
   PRIORITY_FILTER_LABELS,
@@ -12,16 +12,11 @@ import {
 import { taskListPropsSchema, type TaskRow } from "~/features/chat/schemas/task-list-schema";
 import { TASK_PRIORITY_RANK } from "~/features/tasks/api/task-model";
 
-const PRIORITY_CHIP = {
-  high: "bg-red-500/20 text-red-200 ring-red-400/30",
-  medium: "bg-amber-500/20 text-amber-100 ring-amber-400/30",
-  low: "bg-zinc-500/20 text-zinc-200 ring-zinc-400/30",
-} as const satisfies Record<TaskRow["priority"], string>;
-
-const DONE_CHIP = {
-  done: "bg-emerald-500/20 text-emerald-200 ring-emerald-400/30",
-  active: "bg-white/10 text-zinc-300 ring-white/20",
-} as const satisfies Record<"active" | "done", string>;
+const PRIORITY_COLOR = {
+  high: "danger",
+  low: "default",
+  medium: "warning",
+} as const satisfies Record<TaskRow["priority"], "danger" | "default" | "warning">;
 
 function sortTasks(tasks: TaskRow[], sortKey: (typeof SORTS)[number]) {
   if (sortKey === "priority") {
@@ -43,103 +38,117 @@ export const taskList = defineComponent({
     const [priority, setPriority] = useState<(typeof PRIORITY_FILTERS)[number]>("all");
     const [sortKey, setSortKey] = useState<(typeof SORTS)[number]>("default");
 
+    // Plain locals so React Compiler tracks priority / query / sortKey as deps.
     const normalized = query.trim().toLowerCase();
-    const visible = pipe(
-      tasks,
-      filter(
-        (task) =>
-          (priority === "all" || task.priority === priority) &&
-          (!normalized || task.title.toLowerCase().includes(normalized)),
-      ),
-      (filtered) => sortTasks(filtered, sortKey),
+    const filtered = tasks.filter(
+      (task) =>
+        (priority === "all" || task.priority === priority) &&
+        (normalized === "" || task.title.toLowerCase().includes(normalized)),
     );
+    const visible = sortTasks(filtered, sortKey);
 
     return (
-      <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-zinc-100">
-        <div className="mb-3 flex flex-col gap-2 sm:flex-row">
-          <input
-            aria-label="タスクを検索"
-            className={cn(
-              "min-h-9 rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-zinc-50 outline-offset-2 placeholder:text-zinc-400 focus-visible:outline-2 focus-visible:outline-white/60 [&>option]:text-zinc-900",
-              "flex-1",
-            )}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="タスクを検索..."
-            type="search"
-            value={query}
-          />
-          <select
-            aria-label="優先度で絞り込み"
-            className={
-              "min-h-9 rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-zinc-50 outline-offset-2 placeholder:text-zinc-400 focus-visible:outline-2 focus-visible:outline-white/60 [&>option]:text-zinc-900"
-            }
-            onChange={(event) =>
-              setPriority(event.target.value as (typeof PRIORITY_FILTERS)[number])
-            }
-            value={priority}
-          >
-            {PRIORITY_FILTERS.map((value) => (
-              <option key={value} value={value}>
-                {PRIORITY_FILTER_LABELS[value]}
-              </option>
-            ))}
-          </select>
-          <select
-            aria-label="並び替え"
-            className={
-              "min-h-9 rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-zinc-50 outline-offset-2 placeholder:text-zinc-400 focus-visible:outline-2 focus-visible:outline-white/60 [&>option]:text-zinc-900"
-            }
-            onChange={(event) => setSortKey(event.target.value as (typeof SORTS)[number])}
-            value={sortKey}
-          >
-            {SORTS.map((value) => (
-              <option key={value} value={value}>
-                {SORT_LABELS[value]}
-              </option>
-            ))}
-          </select>
-        </div>
-        {visible.length === 0 ? (
-          <p className="py-6 text-center text-sm text-zinc-400">該当なし</p>
-        ) : (
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-white/10 text-left text-xs font-medium tracking-wide text-zinc-400 uppercase">
-                <th className="py-2 pr-3">Title</th>
-                <th className="py-2 pr-3">Priority</th>
-                <th className="py-2">Done</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((task) => (
-                <tr className="border-b border-white/5 last:border-0" key={task.id}>
-                  <td className="py-2 pr-3 text-zinc-100">{task.title}</td>
-                  <td className="py-2 pr-3">
-                    <span
-                      className={cn(
-                        "inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
-                        PRIORITY_CHIP[task.priority],
-                      )}
-                    >
-                      {task.priority}
-                    </span>
-                  </td>
-                  <td className="py-2">
-                    <span
-                      className={cn(
-                        "inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset",
-                        task.completed ? DONE_CHIP.done : DONE_CHIP.active,
-                      )}
-                    >
-                      {task.completed ? "完了" : "未完了"}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <Card>
+        <Card.Content className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="flex flex-1 gap-2">
+              <Input
+                aria-label="タスクを検索"
+                className="flex-1"
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="タスクを検索..."
+                value={query}
+              />
+              {query === "" ? null : (
+                <Button
+                  aria-label="検索をクリア"
+                  onPress={() => setQuery("")}
+                  size="sm"
+                  variant="secondary"
+                >
+                  <CloseIcon />
+                </Button>
+              )}
+            </div>
+            <Select
+              aria-label="優先度で絞り込み"
+              className="sm:w-44"
+              onChange={(key) => setPriority(key as (typeof PRIORITY_FILTERS)[number])}
+              value={priority}
+            >
+              <Select.Trigger>
+                <Select.Value />
+                <Select.Indicator />
+              </Select.Trigger>
+              <Select.Popover>
+                <ListBox>
+                  {PRIORITY_FILTERS.map((value) => (
+                    <ListBox.Item id={value} key={value} textValue={PRIORITY_FILTER_LABELS[value]}>
+                      {PRIORITY_FILTER_LABELS[value]}
+                    </ListBox.Item>
+                  ))}
+                </ListBox>
+              </Select.Popover>
+            </Select>
+            <Select
+              aria-label="並び替え"
+              className="sm:w-44"
+              onChange={(key) => setSortKey(key as (typeof SORTS)[number])}
+              value={sortKey}
+            >
+              <Select.Trigger>
+                <Select.Value />
+                <Select.Indicator />
+              </Select.Trigger>
+              <Select.Popover>
+                <ListBox>
+                  {SORTS.map((value) => (
+                    <ListBox.Item id={value} key={value} textValue={SORT_LABELS[value]}>
+                      {SORT_LABELS[value]}
+                    </ListBox.Item>
+                  ))}
+                </ListBox>
+              </Select.Popover>
+            </Select>
+          </div>
+          {visible.length === 0 ? (
+            <p className="text-muted py-6 text-center text-sm">該当なし</p>
+          ) : (
+            <Table>
+              <Table.ScrollContainer>
+                <Table.Content aria-label="タスク一覧">
+                  <Table.Header>
+                    <Table.Column isRowHeader>Title</Table.Column>
+                    <Table.Column>Priority</Table.Column>
+                    <Table.Column>Done</Table.Column>
+                  </Table.Header>
+                  <Table.Body items={visible}>
+                    {(task) => (
+                      <Table.Row id={task.id}>
+                        <Table.Cell>{task.title}</Table.Cell>
+                        <Table.Cell>
+                          <Chip color={PRIORITY_COLOR[task.priority]} size="sm" variant="secondary">
+                            <Chip.Label>{task.priority}</Chip.Label>
+                          </Chip>
+                        </Table.Cell>
+                        <Table.Cell>
+                          <Chip
+                            color={task.completed ? "success" : "default"}
+                            size="sm"
+                            variant="secondary"
+                          >
+                            <Chip.Label>{task.completed ? "完了" : "未完了"}</Chip.Label>
+                          </Chip>
+                        </Table.Cell>
+                      </Table.Row>
+                    )}
+                  </Table.Body>
+                </Table.Content>
+              </Table.ScrollContainer>
+            </Table>
+          )}
+        </Card.Content>
+      </Card>
     );
   },
   description:

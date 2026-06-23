@@ -1,4 +1,4 @@
-import { cn } from "cnfast";
+import { Button, Input } from "@heroui/react";
 
 import { withForm } from "~/features/chat/hooks/form";
 
@@ -7,7 +7,7 @@ export const ChatInputForm = withForm({
   props: { hasPendingApproval: false, isStreaming: false },
   render: function Render({ form, hasPendingApproval, isStreaming }) {
     return (
-      <>
+      <div className="flex flex-col gap-2">
         {hasPendingApproval ? (
           <p className="text-sm text-amber-700">
             保留中の確認があります。先に「承認」または「キャンセル」を選んでください。
@@ -16,7 +16,6 @@ export const ChatInputForm = withForm({
 
         <form
           aria-label="Send chat message"
-          className="rounded-lg border border-zinc-200 bg-white p-3 shadow-sm"
           onSubmit={(event) => {
             event.preventDefault();
             void form.handleSubmit();
@@ -25,16 +24,10 @@ export const ChatInputForm = withForm({
           <form.Field name="body">
             {(field) => (
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-zinc-700" htmlFor={field.name}>
-                  Message
-                </label>
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  <input
+                  <Input
                     aria-label="Chat message"
-                    className={cn(
-                      "min-h-12 flex-1 rounded-md border border-zinc-300 px-3 text-base outline-offset-2 placeholder:text-zinc-400 focus-visible:outline-2 focus-visible:outline-zinc-900",
-                    )}
-                    id={field.name}
+                    className="flex-1"
                     name={field.name}
                     onBlur={field.handleBlur}
                     onChange={(event) => field.handleChange(event.target.value)}
@@ -43,16 +36,12 @@ export const ChatInputForm = withForm({
                   />
                   <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
                     {([canSubmit, isSubmitting]) => (
-                      <button
-                        className={cn(
-                          "min-h-12 rounded-md bg-black px-5 font-medium text-white outline-offset-2 focus-visible:outline-2 focus-visible:outline-zinc-900",
-                          (!canSubmit || isStreaming || hasPendingApproval) && "opacity-50",
-                        )}
-                        disabled={!canSubmit || isStreaming || hasPendingApproval}
+                      <Button
+                        isDisabled={!canSubmit || isStreaming || hasPendingApproval}
                         type="submit"
                       >
                         {isSubmitting ? "..." : "Send"}
-                      </button>
+                      </Button>
                     )}
                   </form.Subscribe>
                 </div>
@@ -69,7 +58,7 @@ export const ChatInputForm = withForm({
             )}
           </form.Field>
         </form>
-      </>
+      </div>
     );
   },
 });

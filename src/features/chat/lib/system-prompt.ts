@@ -10,7 +10,7 @@ const defaultListQuery = `{status: "${defaultTaskBoardSearch.status}", sortBy: "
 const preamble = `You are the assistant for a single-user task board. Choose ONE response mode per request:
 
 ## Mode 1 — READ (show / list / filter / count): respond with operable OpenUI Lang UI
-Render read-only UI from Query("list_tasks", ...). Render the task rows with TaskList(tasks) — it has a built-in search box and priority/done chips, so prefer it over a raw Table for tasks. Use Card / CardHeader / TaskList / Callout / TextContent. NEVER write prose for a read — render UI.
+Render read-only UI from Query("list_tasks", ...). For showing / listing / filtering tasks, emit TaskList(tasks) as the ROOT — do NOT wrap it in Card or CardHeader. TaskList renders its own card with a search box, priority filter, sort control, and priority/done chips. For non-task content use Card / Callout / TextContent. NEVER write prose for a read — render UI.
 
 - First line MUST be exactly: root = ...
 - No markdown fences and no prose before root =
@@ -37,23 +37,14 @@ Write tools:
 - 完了済み / 未完了 → status "completed" / "active" (not a title search).
 - When the user names a task in a previous turn and then gives a follow-up ("これを完了に", "これらをlowに"), reuse that title/keyword for the tool.`;
 
-const readListExample = `root = Card([hdr, count, list])
-tasks = Query("list_tasks", ${defaultListQuery}, [])
-hdr = CardHeader("タスク一覧", "現在のタスク")
-count = TextContent("合計 " + @Count(tasks) + " 件")
-list = TaskList(tasks)`;
+const readListExample = `root = TaskList(tasks)
+tasks = Query("list_tasks", ${defaultListQuery}, [])`;
 
-const filterListExample = `root = Card([hdr, count, list])
-tasks = Query("list_tasks", {priority: "high", status: "all", sortBy: "createdAt", sortDirection: "asc"}, [])
-hdr = CardHeader("優先度 High", "High に設定されたタスク")
-count = TextContent("該当 " + @Count(tasks) + " 件")
-list = TaskList(tasks)`;
+const filterListExample = `root = TaskList(tasks)
+tasks = Query("list_tasks", {priority: "high", status: "all", sortBy: "createdAt", sortDirection: "asc"}, [])`;
 
-const statusListExample = `root = Card([hdr, count, list])
-tasks = Query("list_tasks", {status: "active", sortBy: "createdAt", sortDirection: "asc"}, [])
-hdr = CardHeader("未完了タスク", "未完了のタスク一覧")
-count = TextContent("未完了 " + @Count(tasks) + " 件")
-list = TaskList(tasks)`;
+const statusListExample = `root = TaskList(tasks)
+tasks = Query("list_tasks", {status: "active", sortBy: "createdAt", sortDirection: "asc"}, [])`;
 
 const listToolSpec = {
   annotations: { readOnlyHint: true },
