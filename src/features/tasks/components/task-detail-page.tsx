@@ -1,4 +1,4 @@
-import { Button, Card, Chip } from "@heroui/react";
+import { Button, Card, Chip, toast } from "@heroui/react";
 import { eq, useLiveSuspenseQuery } from "@tanstack/react-db";
 import { getRouteApi, Link } from "@tanstack/react-router";
 
@@ -14,7 +14,7 @@ export function TaskDetailPage() {
     query.from({ task: tasksCollection }).where(({ task }) => eq(task.id, taskId)),
   );
 
-  const task = matches?.[0];
+  const task = matches[0];
 
   if (!task) {
     return (
@@ -44,8 +44,13 @@ export function TaskDetailPage() {
         {!task.completed ? (
           <Button
             onPress={() => {
-              tasksCollection.update(task.id, (draft) => {
+              const tx = tasksCollection.update(task.id, (draft) => {
                 draft.completed = true;
+              });
+
+              //? table / quick-add と同様、persist の reject を catch して toast する（未処理 rejection を防ぐ。）。
+              tx.isPersisted.promise.catch(() => {
+                toast.danger("タスクの完了に失敗しました。");
               });
             }}
           >

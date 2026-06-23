@@ -15,14 +15,12 @@ export function extractOpenUILang(text: string) {
     return fenced[1].trim();
   }
 
-  const rootIndex = trimmed.indexOf("root =");
+  //? OpenUI Lang は行頭の `root =` で始まる。散文中に現れる "root =" を誤検出しないよう
+  //? 行頭アンカー（multiline）で判定し、その位置以降を抽出する。
+  const rootMatch = trimmed.match(/^root\s*=/m);
 
-  if (rootIndex >= 0) {
-    return trimmed.slice(rootIndex).trim();
-  }
-
-  if (trimmed.startsWith("root =")) {
-    return trimmed;
+  if (rootMatch?.index !== undefined) {
+    return trimmed.slice(rootMatch.index).trim();
   }
 
   return null;

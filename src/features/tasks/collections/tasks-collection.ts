@@ -3,11 +3,11 @@ import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { z } from "zod";
 
-import { TaskViewSchema, type TaskView } from "~/features/tasks/api/task-model";
+import { TaskViewWireSchema, type TaskView } from "~/features/tasks/api/task-model";
 import { edenClient } from "~/lib/eden";
 import { queryClient } from "~/lib/query-client";
 
-const taskViewsSchema = z.array(TaskViewSchema);
+const taskViewsSchema = z.array(TaskViewWireSchema);
 
 //? 楽観更新の API 失敗は throw で TanStack DB が自動ロールバックする。失敗が無言で戻ると
 //? ユーザーが気づけないため、ここで toast.danger を出してから rethrow（ロールバックは維持）。
@@ -53,7 +53,7 @@ export const tasksCollection = createCollection(
               throw new Error(data.message);
             }
 
-            const task = TaskViewSchema.parse(data.task);
+            const task = TaskViewWireSchema.parse(data.task);
 
             tasksCollection.utils.writeBatch(() => {
               tasksCollection.utils.writeInsert(task);
@@ -87,7 +87,7 @@ export const tasksCollection = createCollection(
                 throw new Error(data.message);
               }
 
-              const task = TaskViewSchema.parse(data.task);
+              const task = TaskViewWireSchema.parse(data.task);
 
               tasksCollection.utils.writeBatch(() => {
                 tasksCollection.utils.writeUpdate(task);
@@ -108,7 +108,7 @@ export const tasksCollection = createCollection(
                 throw new Error(data.message);
               }
 
-              const task = TaskViewSchema.parse(data.task);
+              const task = TaskViewWireSchema.parse(data.task);
 
               tasksCollection.utils.writeBatch(() => {
                 tasksCollection.utils.writeUpdate(task);

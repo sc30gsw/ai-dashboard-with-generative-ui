@@ -35,6 +35,10 @@ export const TaskViewToolOutputSchema = TaskViewSchema.omit({ createdAt: true })
   createdAt: z.iso.datetime(),
 });
 
+export const TaskViewWireSchema = TaskViewSchema.omit({ createdAt: true }).extend({
+  createdAt: z.coerce.date(),
+});
+
 const TaskPrioritySchema = z.enum(TASK_PRIORITIES);
 const TaskPriorityFilterSchema = z.enum(TASK_PRIORITY_FILTERS);
 const TaskStatusFilterSchema = z.enum(TASK_STATUS_FILTERS);

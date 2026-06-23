@@ -31,3 +31,16 @@ test("bulk_update_tasks composes every active filter into the scope (R1)", () =>
   expect(summary).toContain("報告");
   expect(summary).toContain("優先度 → low");
 });
+
+test("bulk_update_tasks with confirmAll and no filter surfaces the full-board scope (N2)", () => {
+  const summary = summarizeToolInput("bulk_update_tasks", {
+    completed: true,
+    confirmAll: true,
+    status: "all",
+  });
+
+  //? confirmAll の全件適用は「ボード上のすべてのタスク」として明示し、裸の「対象タスク」に落ちない。
+  expect(summary).toContain("ボード上のすべてのタスク");
+  expect(summary).not.toContain("対象タスク");
+  expect(summary).toContain("完了にする");
+});

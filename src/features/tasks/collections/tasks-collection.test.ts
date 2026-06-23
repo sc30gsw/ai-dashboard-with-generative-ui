@@ -98,3 +98,31 @@ test("update changing title + completed sends the full field set, not complete-o
   const [payload] = updatePost.mock.calls[0] ?? [];
   expect(payload).toMatchObject({ completed: true, id, title: "new" });
 });
+
+test("queryFn coerces a serialized (string) createdAt from the HTTP response (N1)", async () => {
+  const id = crypto.randomUUID();
+  //? Eden(HTTP) は createdAt を ISO 文字列で返す。z.date() のままだと parse が throw し、
+  //? コレクションがブラウザで一切ロードできなくなる回帰を防ぐ。
+  listGet.mockResolvedValue({
+    data: {
+      ok: true,
+      tasks: [
+        {
+          completed: false,
+          createdAt: "2026-06-23T00:00:00.000Z",
+          id,
+          priority: "medium",
+          title: "wire",
+        },
+      ],
+    },
+    error: null,
+  });
+
+  const { tasksCollection } = await import("~/features/tasks/collections/tasks-collection");
+  await tasksCollection.stateWhenReady();
+
+  //? 文字列 createdAt が Date に正規化され、アイテムがロードされること。
+  expect(tasksCollection.has(id)).toBe(true);
+  expect(tasksCollection.get(id)?.createdAt).toBeInstanceOf(Date);
+});
