@@ -1,4 +1,5 @@
 import { Button, Card, Chip } from "@heroui/react";
+import { cn } from "cnfast";
 
 import type { ToolUIPart } from "~/features/chat/utils/message-parts";
 import {
@@ -30,7 +31,11 @@ export function ToolPartView({ part, onApprove }: ToolPartViewProps) {
           <p className="text-sm font-semibold text-zinc-800">{label}</p>
           <p className="text-sm text-zinc-600">{summarizeToolInput(name, part.input)}</p>
           <div className="flex gap-2">
-            <Button onPress={() => onApprove(approvalId, true)} variant="primary">
+            <Button
+              className={cn(destructive && "bg-red-600 text-white hover:bg-red-700")}
+              onPress={() => onApprove(approvalId, true)}
+              variant="primary"
+            >
               {destructive ? "削除する" : "承認"}
             </Button>
             <Button onPress={() => onApprove(approvalId, false)} variant="secondary">

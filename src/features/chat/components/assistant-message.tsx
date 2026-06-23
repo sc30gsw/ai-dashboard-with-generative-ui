@@ -1,3 +1,4 @@
+import { Card } from "@heroui/react";
 import { BuiltinActionType } from "@openuidev/lang-core";
 import { Renderer } from "@openuidev/react-lang";
 import type { UIMessage } from "ai";
@@ -59,9 +60,9 @@ export function AssistantMessage({
           toolProvider={readToolMap}
         />
       ) : text.length > 0 ? (
-        <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm leading-6 text-zinc-800 shadow-sm">
-          {text}
-        </div>
+        <Card>
+          <Card.Content className="text-sm leading-6 text-zinc-800">{text}</Card.Content>
+        </Card>
       ) : null}
     </article>
   );
