@@ -1,4 +1,4 @@
-import { Card, Header, Heading, linkVariants, toast } from "@heroui/react";
+import { Card, Header, Heading, linkVariants } from "@heroui/react";
 import { Link } from "@tanstack/react-router";
 import { cn } from "cnfast";
 

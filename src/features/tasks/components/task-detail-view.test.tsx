@@ -6,8 +6,9 @@ import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import type { TaskView } from "~/features/tasks/api/task-model";
 import { TaskDetailView } from "~/features/tasks/components/task-detail-view";
 
-const { deleteMock, updateMock } = vi.hoisted(() => ({
+const { deleteMock, searchState, updateMock } = vi.hoisted(() => ({
   deleteMock: vi.fn(),
+  searchState: { edit: undefined as boolean | undefined },
   updateMock: vi.fn(),
 }));
 
@@ -17,9 +18,14 @@ vi.mock("~/features/tasks/collections/tasks-collection", () => ({
   tasksCollection: { delete: deleteMock, update: updateMock },
 }));
 
-//? view は router の <Link> / useNavigate を使う。RouterProvider 無しのコンポーネント単体テストで
-//? useLinkProps が落ちるため、Link を素の anchor にスタブする。
+//? view は router の <Link> / useNavigate / getRouteApi(...).useSearch を使う。RouterProvider 無しの
+//? コンポーネント単体テストで落ちるため、これらをスタブする。編集モードは getRouteApi().useSearch() の
+//? edit で駆動するので、searchState を可変にしてテストごとに制御する。
 vi.mock("@tanstack/react-router", () => ({
+  getRouteApi: () => ({
+    useNavigate: () => navigateMock,
+    useSearch: () => searchState,
+  }),
   Link: ({ children, to, ...props }: { children: ReactNode; to?: string }) => (
     <a href={typeof to === "string" ? to : "#"} {...props}>
       {children}
@@ -45,6 +51,7 @@ beforeEach(() => {
   deleteMock.mockReset();
   deleteMock.mockReturnValue({ isPersisted: { promise: Promise.resolve() } });
   navigateMock.mockReset();
+  searchState.edit = undefined;
 });
 
 afterEach(cleanup);
@@ -76,10 +83,17 @@ test("a completed task shows Reopen and sets completed=false on press", async ()
   expect(draft.completed).toBe(false);
 });
 
-test("editing the title updates the task while keeping priority", async () => {
+test("clicking Edit switches to edit mode via the URL query", () => {
   render(<TaskDetailView task={makeTask()} />);
 
   fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+
+  expect(navigateMock).toHaveBeenCalledWith({ replace: true, search: { edit: true } });
+});
+
+test("editing the title (edit mode driven by ?edit) updates the task while keeping priority", async () => {
+  searchState.edit = true;
+  render(<TaskDetailView task={makeTask()} />);
 
   const input = await screen.findByRole("textbox", { name: "Task title" });
   fireEvent.change(input, { target: { value: "Buy oat milk" } });
@@ -94,6 +108,9 @@ test("editing the title updates the task while keeping priority", async () => {
   recipe(draft);
   expect(draft.title).toBe("Buy oat milk");
   expect(draft.priority).toBe("medium");
+
+  //? 保存後は ?edit を外して閲覧モードへ戻す。
+  expect(navigateMock).toHaveBeenCalledWith({ replace: true, search: { edit: undefined } });
 });
 
 test("deleting a task confirms, calls the collection, then navigates away", async () => {

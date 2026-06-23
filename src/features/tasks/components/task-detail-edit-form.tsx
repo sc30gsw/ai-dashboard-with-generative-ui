@@ -1,12 +1,13 @@
 import {
   Button,
-  ButtonGroup,
+  CloseIcon,
   FieldError,
   Form,
   Input,
   Label,
   ListBox,
   Select,
+  SuccessIcon,
   TextField,
 } from "@heroui/react";
 
@@ -97,18 +98,24 @@ export const TaskDetailEditForm = withForm({
             </TextField>
           )}
         </form.Field>
-        <ButtonGroup>
+        <div className="flex items-center justify-end gap-2">
+          <Button type="button" variant="tertiary" onPress={onCancel}>
+            <span className="inline-flex items-center gap-1.5">
+              <CloseIcon />
+              Cancel
+            </span>
+          </Button>
           <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
             {([canSubmit, isSubmitting]) => (
               <Button isDisabled={!canSubmit || isSubmitting} type="submit">
-                {isSubmitting ? "Saving..." : "Save"}
+                <span className="inline-flex items-center gap-1.5">
+                  <SuccessIcon />
+                  {isSubmitting ? "Saving..." : "Save"}
+                </span>
               </Button>
             )}
           </form.Subscribe>
-          <Button type="button" variant="tertiary" onPress={onCancel}>
-            Cancel
-          </Button>
-        </ButtonGroup>
+        </div>
         <form.Subscribe selector={(state) => state.errorMap.onSubmit}>
           {(submitError) =>
             submitError ? <FieldError>{formatFieldError(submitError)}</FieldError> : null

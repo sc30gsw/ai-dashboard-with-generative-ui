@@ -1,4 +1,12 @@
-import { AlertDialog, Button, Code, Description, toast } from "@heroui/react";
+import {
+  AlertDialog,
+  Button,
+  CloseIcon,
+  Code,
+  DangerIcon,
+  Description,
+  toast,
+} from "@heroui/react";
 import { useNavigate } from "@tanstack/react-router";
 
 import type { TaskView } from "~/features/tasks/api/task-model";
@@ -20,7 +28,12 @@ export function TaskDeleteDialog({ task }: { task: TaskView }) {
 
   return (
     <AlertDialog>
-      <Button variant="danger">Delete</Button>
+      <Button variant="danger">
+        <span className="inline-flex items-center gap-1.5">
+          <DangerIcon />
+          Delete
+        </span>
+      </Button>
       <AlertDialog.Backdrop>
         <AlertDialog.Container>
           <AlertDialog.Dialog className="sm:max-w-[400px]">
@@ -37,10 +50,16 @@ export function TaskDeleteDialog({ task }: { task: TaskView }) {
             </AlertDialog.Body>
             <AlertDialog.Footer>
               <Button slot="close" variant="tertiary">
-                Cancel
+                <span className="inline-flex items-center gap-1.5">
+                  <CloseIcon />
+                  Cancel
+                </span>
               </Button>
               <Button slot="close" variant="danger" onPress={handleDelete}>
-                Delete task
+                <span className="inline-flex items-center gap-1.5">
+                  <DangerIcon />
+                  Delete task
+                </span>
               </Button>
             </AlertDialog.Footer>
           </AlertDialog.Dialog>

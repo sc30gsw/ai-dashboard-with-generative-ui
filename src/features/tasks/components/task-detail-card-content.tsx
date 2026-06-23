@@ -1,5 +1,5 @@
 import { toast } from "@heroui/react";
-import React, { useState } from "react";
+import { getRouteApi } from "@tanstack/react-router";
 
 import { useAppForm } from "~/features/chat/hooks/form";
 import {
@@ -11,8 +11,12 @@ import { tasksCollection } from "~/features/tasks/collections/tasks-collection";
 import { TaskDetailEditForm } from "~/features/tasks/components/task-detail-edit-form";
 import { TaskDetailInfo } from "~/features/tasks/components/task-detail-info";
 
+const routeApi = getRouteApi("/_app/tasks/$taskId");
+
 export function TaskDetailCardContent({ task }: Record<"task", TaskView>) {
-  const [isEditing, setIsEditing] = useState(false);
+  const { edit } = routeApi.useSearch();
+  const navigate = routeApi.useNavigate();
+  const isEditing = edit === true;
 
   const form = useAppForm({
     defaultValues: {
@@ -34,19 +38,19 @@ export function TaskDetailCardContent({ task }: Record<"task", TaskView>) {
         toast.danger("タスクの更新に失敗しました。");
       });
 
-      setIsEditing(false);
+      void navigate({ replace: true, search: { edit: undefined } });
     },
   });
 
   function startEditing() {
     //? 最新の task 値でフォームを同期してから編集モードへ（前回のキャンセル値を持ち越さない）。
     form.reset({ priority: task.priority, title: task.title });
-    setIsEditing(true);
+    void navigate({ replace: true, search: { edit: true } });
   }
 
   function cancelEditing() {
     form.reset({ priority: task.priority, title: task.title });
-    setIsEditing(false);
+    void navigate({ replace: true, search: { edit: undefined } });
   }
 
   return isEditing ? (

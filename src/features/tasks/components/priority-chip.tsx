@@ -10,7 +10,7 @@ const PRIORITY_COLOR = {
 
 export function PriorityChip({ priority }: Record<"priority", TaskPriority>) {
   return (
-    <Chip color={PRIORITY_COLOR[priority]} size="sm" variant="secondary">
+    <Chip className="w-fit" color={PRIORITY_COLOR[priority]} size="sm" variant="secondary">
       <Chip.Label>{priority}</Chip.Label>
     </Chip>
   );
