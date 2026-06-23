@@ -1,3 +1,4 @@
+import { ArrowRotateLeft, CircleCheck } from "@gravity-ui/icons";
 import { Button, toast } from "@heroui/react";
 
 import type { TaskView } from "~/features/tasks/api/task-model";
@@ -18,7 +19,19 @@ export function TaskDetailCompletionToggleButton({ task }: Record<"task", TaskVi
 
   return (
     <Button variant={task.completed ? "secondary" : "primary"} onPress={toggleCompleted}>
-      {task.completed ? "Reopen" : "Mark complete"}
+      <span className="inline-flex items-center gap-1.5">
+        {task.completed ? (
+          <>
+            <ArrowRotateLeft aria-hidden="true" />
+            Reopen
+          </>
+        ) : (
+          <>
+            <CircleCheck aria-hidden="true" />
+            Mark complete
+          </>
+        )}
+      </span>
     </Button>
   );
 }

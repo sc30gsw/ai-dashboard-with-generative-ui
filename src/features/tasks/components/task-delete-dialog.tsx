@@ -1,12 +1,5 @@
-import {
-  AlertDialog,
-  Button,
-  CloseIcon,
-  Code,
-  DangerIcon,
-  Description,
-  toast,
-} from "@heroui/react";
+import { TrashBin } from "@gravity-ui/icons";
+import { AlertDialog, Button, CloseIcon, Code, Description, toast } from "@heroui/react";
 import { useNavigate } from "@tanstack/react-router";
 
 import type { TaskView } from "~/features/tasks/api/task-model";
@@ -30,7 +23,7 @@ export function TaskDeleteDialog({ task }: { task: TaskView }) {
     <AlertDialog>
       <Button variant="danger">
         <span className="inline-flex items-center gap-1.5">
-          <DangerIcon />
+          <TrashBin aria-hidden="true" />
           Delete
         </span>
       </Button>
@@ -57,7 +50,7 @@ export function TaskDeleteDialog({ task }: { task: TaskView }) {
               </Button>
               <Button slot="close" variant="danger" onPress={handleDelete}>
                 <span className="inline-flex items-center gap-1.5">
-                  <DangerIcon />
+                  <TrashBin aria-hidden="true" />
                   Delete task
                 </span>
               </Button>
