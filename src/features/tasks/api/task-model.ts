@@ -11,7 +11,7 @@ const TASK_SORT_DIRECTIONS = ["asc", "desc"] as const;
 
 const TaskSchema = createSelectSchema(tasks);
 
-export const TaskViewSchema = TaskSchema.pick({
+const TaskViewSchema = TaskSchema.pick({
   completed: true,
   createdAt: true,
   id: true,
@@ -33,6 +33,10 @@ export function toTaskView(task: Pick<TaskView, "completed" | "id" | "priority" 
 
 export const TaskViewToolOutputSchema = TaskViewSchema.omit({ createdAt: true }).extend({
   createdAt: z.iso.datetime(),
+});
+
+export const TaskViewWireSchema = TaskViewSchema.omit({ createdAt: true }).extend({
+  createdAt: z.coerce.date(),
 });
 
 const TaskPrioritySchema = z.enum(TASK_PRIORITIES);

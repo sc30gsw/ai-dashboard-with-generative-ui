@@ -1,5 +1,4 @@
 import { useChat } from "@ai-sdk/react";
-import { toast } from "@heroui/react";
 import type { Renderer } from "@openuidev/react-lang";
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
 import type { ComponentProps } from "react";
@@ -18,9 +17,6 @@ const chatTransport = new DefaultChatTransport({ api: "/api/chat" });
 
 export function Chat() {
   const { messages, sendMessage, status, error, addToolApprovalResponse } = useChat({
-    onError: (chatError) => {
-      toast.danger(chatError.message || "チャットでエラーが発生しました。");
-    },
     onFinish: () => {
       void refetchTasksCollection();
     },

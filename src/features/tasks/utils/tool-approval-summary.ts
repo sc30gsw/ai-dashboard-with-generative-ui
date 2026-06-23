@@ -48,6 +48,8 @@ export function summarizeToolInput(
   //? priority = SET 値（更新後の優先度）、priorityFilter = 絞り込み（対象の優先度）。別キーなので個別に読む。
   const priority = typeof record.priority === "string" ? record.priority : null;
   const priorityFilter = typeof record.priorityFilter === "string" ? record.priorityFilter : null;
+  //* bulk_update_tasks の全件適用意図。フィルタが無いまま全タスクを変更する場合に明示する
+  const confirmAll = record.confirmAll === true;
 
   const changes: string[] = [];
 
@@ -81,7 +83,12 @@ export function summarizeToolInput(
     search ? `「${search}」を含む` : null,
   ].filter((scope) => scope !== null);
 
-  const target = scopes.length > 0 ? `${scopes.join("・")}のタスク` : "対象タスク";
+  const target =
+    scopes.length > 0
+      ? `${scopes.join("・")}のタスク`
+      : confirmAll
+        ? "ボード上のすべてのタスク"
+        : "対象タスク";
 
   return changes.length > 0 ? `${target}（${changes.join(" / ")}）` : target;
 }

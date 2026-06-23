@@ -17,11 +17,26 @@ import { systemPrompt } from "~/features/chat/lib/system-prompt";
 import { defaultListTasksSchema } from "~/features/tasks/api/task-model";
 import { TaskService } from "~/features/tasks/api/task-service";
 import { chatTools } from "~/features/tasks/tools/adapters/ai-sdk";
+import { createRateLimiter } from "~/lib/rate-limit";
 
 //? chatTools 由来の tool 型を持つ UIMessage。validateUIMessages へ渡して tool parts まで型安全に検証する。
 type ChatMessage = UIMessage<never, UIDataTypes, InferUITools<typeof chatTools>>;
 
 const ChatRequestSchema = z.object({ messages: z.array(z.unknown()) });
+
+//? Gateway は有料なので、IP ごとに 1 分 20 リクエストへ制限し wallet-DoS を抑える。
+//* 単一インスタンスの常駐 Node サーバー前提のインメモリ制限（rate-limit.ts の caveat 参照）。
+const CHAT_RATE_LIMIT = { max: 20, windowMs: 60_000 } as const satisfies Record<string, number>;
+
+const chatRateLimiter = createRateLimiter(CHAT_RATE_LIMIT);
+
+//* プロキシ経由の実クライアント IP を取得。取れない場合は固定バケットへ集約し、
+//* IP 不明でも総スループットに上限がかかるようにする。
+function clientKey(request: Request) {
+  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+
+  return forwarded || request.headers.get("x-real-ip")?.trim() || "unknown";
+}
 
 function badRequest(message: string) {
   return new Response(JSON.stringify({ error: message }), {
@@ -72,6 +87,19 @@ ${data}
 //* Write → AI SDK ツール。破壊的操作は `needsApproval` でユーザー承認まで一時停止。
 //* サーバー側ルーターやピン留めなし。
 async function handleChat({ request }: Record<"request", Request>) {
+  //* Gateway を呼ぶ前にレート制限を判定し、超過時は streamText に到達させない（コスト濫用対策）。
+  const limit = chatRateLimiter.check(clientKey(request));
+
+  if (!limit.allowed) {
+    return new Response(JSON.stringify({ error: "Too many requests" }), {
+      headers: {
+        "content-type": "application/json",
+        "Retry-After": String(limit.retryAfterSeconds),
+      },
+      status: 429,
+    });
+  }
+
   if (!process.env.AI_GATEWAY_API_KEY) {
     throw new Error("AI_GATEWAY_API_KEY is required");
   }

@@ -53,7 +53,7 @@ function StatsCard({ label, value }: StatsCardProps) {
 export function DashboardPage() {
   const { data: tasks } = useAllTasksQuery("desc");
 
-  const rows = tasks ?? [];
+  const rows = tasks;
   const [, openTasks] = partition(rows, (task) => task.completed);
 
   const byPriority = countBy(rows, (task) => task.priority);

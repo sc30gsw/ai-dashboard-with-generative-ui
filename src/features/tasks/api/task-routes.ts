@@ -14,12 +14,23 @@ import {
 } from "~/features/tasks/api/task-model";
 import { TaskService } from "~/features/tasks/api/task-service";
 
+//? 内部の TaskError メッセージをクライアントへ漏らさないための汎用メッセージ。
+const GENERIC_ERROR_MESSAGE = "操作に失敗しました。";
+
+//? 詳細はサーバー側に残し、クライアントには汎用メッセージのみ返す。
+//? 応答 SHAPE（{ ok: false, message }）は維持し、Eden クライアント / collection / tool 側の data.ok・data.message 依存を壊さない。
+function errorResponse(error: Record<"message", string>) {
+  console.error("[task-routes]", error.message);
+
+  return { message: GENERIC_ERROR_MESSAGE, ok: false as const };
+}
+
 export const taskRoutes = new Elysia({ prefix: "/tasks" })
   .get("/list", async () => {
     const result = await TaskService.list(ListTasksSchema.parse({}));
 
     return Result.isError(result)
-      ? { message: result.error.message, ok: false as const }
+      ? errorResponse(result.error)
       : { ok: true as const, tasks: result.value };
   })
   .post(
@@ -28,7 +39,7 @@ export const taskRoutes = new Elysia({ prefix: "/tasks" })
       const result = await TaskService.list(body);
 
       return Result.isError(result)
-        ? { message: result.error.message, ok: false as const }
+        ? errorResponse(result.error)
         : { ok: true as const, tasks: result.value };
     },
     { body: ListTasksSchema },
@@ -39,7 +50,7 @@ export const taskRoutes = new Elysia({ prefix: "/tasks" })
       const result = await TaskService.add(body);
 
       return Result.isError(result)
-        ? { message: result.error.message, ok: false as const }
+        ? errorResponse(result.error)
         : { ok: true as const, task: result.value };
     },
     { body: CreateTaskSchema },
@@ -50,7 +61,7 @@ export const taskRoutes = new Elysia({ prefix: "/tasks" })
       const result = await TaskService.bulkAdd(body.tasks);
 
       return Result.isError(result)
-        ? { message: result.error.message, ok: false as const }
+        ? errorResponse(result.error)
         : { ok: true as const, result: result.value };
     },
     { body: BulkAddTasksSchema },
@@ -61,7 +72,7 @@ export const taskRoutes = new Elysia({ prefix: "/tasks" })
       const result = await TaskService.bulkUpdate(body);
 
       return Result.isError(result)
-        ? { message: result.error.message, ok: false as const }
+        ? errorResponse(result.error)
         : { ok: true as const, result: result.value };
     },
     { body: BulkUpdateTasksSchema },
@@ -72,7 +83,7 @@ export const taskRoutes = new Elysia({ prefix: "/tasks" })
       const result = await TaskService.bulkDelete(body);
 
       return Result.isError(result)
-        ? { message: result.error.message, ok: false as const }
+        ? errorResponse(result.error)
         : { ok: true as const, result: result.value };
     },
     { body: BulkDeleteTasksSchema },
@@ -83,7 +94,7 @@ export const taskRoutes = new Elysia({ prefix: "/tasks" })
       const result = await TaskService.complete(body.id);
 
       return Result.isError(result)
-        ? { message: result.error.message, ok: false as const }
+        ? errorResponse(result.error)
         : { ok: true as const, task: result.value };
     },
     { body: CompleteTaskSchema },
@@ -94,7 +105,7 @@ export const taskRoutes = new Elysia({ prefix: "/tasks" })
       const result = await TaskService.update(body);
 
       return Result.isError(result)
-        ? { message: result.error.message, ok: false as const }
+        ? errorResponse(result.error)
         : { ok: true as const, task: result.value };
     },
     { body: UpdateTaskSchema },
@@ -105,7 +116,7 @@ export const taskRoutes = new Elysia({ prefix: "/tasks" })
       const result = await TaskService.delete(body.id);
 
       return Result.isError(result)
-        ? { message: result.error.message, ok: false as const }
+        ? errorResponse(result.error)
         : { ok: true as const, task: result.value };
     },
     { body: DeleteTaskSchema },
@@ -116,7 +127,7 @@ export const taskRoutes = new Elysia({ prefix: "/tasks" })
       const result = await TaskService.deleteAll();
 
       return Result.isError(result)
-        ? { message: result.error.message, ok: false as const }
+        ? errorResponse(result.error)
         : { ok: true as const, result: result.value };
     },
     { body: DeleteAllTasksSchema },

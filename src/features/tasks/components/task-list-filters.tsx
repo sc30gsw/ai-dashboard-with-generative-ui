@@ -1,5 +1,4 @@
-import { Button, Input, ListBox, Select } from "@heroui/react";
-import { cn } from "cnfast";
+import { Button, Input, Label, ListBox, Select, TextField } from "@heroui/react";
 
 import {
   TASK_PRIORITIES,
@@ -32,16 +31,10 @@ export function TaskListFilters({
               return (
                 <Button
                   aria-pressed={isSelected}
-                  className={cn(
-                    "min-h-10 rounded-md border px-3 text-sm font-medium",
-                    isSelected
-                      ? "border-zinc-900 bg-zinc-900 text-white"
-                      : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100",
-                  )}
                   key={status}
                   onPress={() => field.handleChange(status)}
                   type="button"
-                  variant="secondary"
+                  variant={isSelected ? "primary" : "secondary"}
                 >
                   {STATUS_LABELS[status]}
                 </Button>
@@ -53,15 +46,16 @@ export function TaskListFilters({
       <div className="flex flex-col gap-2 sm:flex-row">
         <form.Field name="search">
           {(field) => (
-            <Input
-              aria-label="Search tasks"
-              className="sm:w-56"
-              name={field.name}
-              onBlur={field.handleBlur}
-              onChange={(event) => field.handleChange(event.target.value)}
-              placeholder="Search title"
-              value={field.state.value}
-            />
+            <TextField className="sm:w-56">
+              <Label className="sr-only">Search tasks</Label>
+              <Input
+                name={field.name}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+                placeholder="Search title"
+                value={field.state.value}
+              />
+            </TextField>
           )}
         </form.Field>
         <form.Field name="priority">
