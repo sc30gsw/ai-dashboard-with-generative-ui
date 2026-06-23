@@ -14,7 +14,12 @@ export function TaskDetailInfo({ onEdit, task }: { onEdit: () => void; task: Tas
       </Fieldset.Group>
       <Fieldset.Group className="flex items-center gap-2">
         <Label className="text-muted text-sm">Status</Label>
-        <Chip className="w-fit" color={task.completed ? "success" : "default"} size="sm" variant="secondary">
+        <Chip
+          className="w-fit"
+          color={task.completed ? "success" : "default"}
+          size="sm"
+          variant="secondary"
+        >
           <Chip.Label>{task.completed ? "Done" : "Open"}</Chip.Label>
         </Chip>
       </Fieldset.Group>
