@@ -50,8 +50,10 @@ async function handleChat({ request }: Record<"request", Request>) {
   }
 
   const { messages }: Record<"messages", UIMessage[]> = await request.json();
-  const modelMessages = await convertToModelMessages(messages);
-  const boardState = await boardStateContext();
+  const [modelMessages, boardState] = await Promise.all([
+    convertToModelMessages(messages),
+    boardStateContext(),
+  ]);
 
   const result = streamText({
     messages: modelMessages,
