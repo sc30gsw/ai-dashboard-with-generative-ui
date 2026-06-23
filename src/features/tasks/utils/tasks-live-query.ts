@@ -2,11 +2,9 @@ import { and, caseWhen, eq, ilike, type InitialQueryBuilder } from "@tanstack/re
 
 import type {
   ListTasksInput,
-  TaskBoardItem,
   TaskPriorityFilter,
   TaskListFilterFormValues,
 } from "~/features/tasks/api/task-model";
-import { TASK_PRIORITY_RANK } from "~/features/tasks/api/task-model";
 import { tasksCollection } from "~/features/tasks/collections/tasks-collection";
 
 export type TasksQueryFilters = {
@@ -17,24 +15,12 @@ export type TasksQueryFilters = {
   status: ListTasksInput["status"];
 };
 
-export type TaskQueryRow = TaskBoardItem;
-
 export function taskListFiltersToQuery(filters: TaskListFilterFormValues): TasksQueryFilters {
   return {
     priority: filters.priority,
     search: filters.search,
     sortBy: "createdAt",
     sortDirection: "desc",
-    status: filters.status,
-  };
-}
-
-export function listTasksInputToQuery(filters: ListTasksInput): TasksQueryFilters {
-  return {
-    priority: filters.priority ?? "all",
-    search: filters.search ?? "",
-    sortBy: filters.sortBy,
-    sortDirection: filters.sortDirection,
     status: filters.status,
   };
 }
@@ -112,65 +98,4 @@ export function buildFilteredTasksQuery(
   }
 
   return builder.orderBy(({ task }) => task.createdAt, filters.sortDirection);
-}
-
-export function taskMatchesFilters(task: TaskQueryRow, filters: TasksQueryFilters) {
-  if (filters.status === "active" && task.completed) {
-    return false;
-  }
-
-  if (filters.status === "completed" && !task.completed) {
-    return false;
-  }
-
-  if (filters.priority !== "all" && task.priority !== filters.priority) {
-    return false;
-  }
-
-  const search = filters.search.trim().toLowerCase();
-
-  if (search && !task.title.toLowerCase().includes(search)) {
-    return false;
-  }
-
-  return true;
-}
-
-function compareByPriority(a: TaskQueryRow, b: TaskQueryRow) {
-  return TASK_PRIORITY_RANK[a.priority] - TASK_PRIORITY_RANK[b.priority];
-}
-
-export function sortTasksForBoard(tasks: readonly TaskQueryRow[], filters: TasksQueryFilters) {
-  const direction = filters.sortDirection === "desc" ? -1 : 1;
-
-  return tasks.slice().sort((a, b) => {
-    const completedOrder = Number(a.completed) - Number(b.completed);
-
-    if (completedOrder !== 0) {
-      return completedOrder;
-    }
-
-    if (filters.sortBy === "priority") {
-      return compareByPriority(a, b) * direction;
-    }
-
-    if (filters.sortBy === "title") {
-      return a.title.localeCompare(b.title) * direction;
-    }
-
-    const aTime = a.createdAt instanceof Date ? a.createdAt.getTime() : Number(a.createdAt ?? 0);
-    const bTime = b.createdAt instanceof Date ? b.createdAt.getTime() : Number(b.createdAt ?? 0);
-
-    return (aTime - bTime) * direction;
-  });
-}
-
-export function filterTasksForBoardFallback(
-  tasks: readonly TaskQueryRow[],
-  filters: TasksQueryFilters,
-) {
-  return sortTasksForBoard(
-    tasks.filter((task) => taskMatchesFilters(task, filters)),
-    filters,
-  );
 }

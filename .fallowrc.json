@@ -1,4 +1,4 @@
 {
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
-  "ignoreDependencies": ["better-typescript-lib"]
+  "ignoreDependencies": ["better-typescript-lib", "react-doctor", "@libsql/client"]
 }

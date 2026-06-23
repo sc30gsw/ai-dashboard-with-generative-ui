@@ -1,7 +1,5 @@
-import { treaty } from "@elysiajs/eden";
 import { openapi } from "@elysiajs/openapi";
 import { createFileRoute } from "@tanstack/react-router";
-import { createIsomorphicFn } from "@tanstack/react-start";
 import { Elysia } from "elysia";
 import { z } from "zod";
 
@@ -18,14 +16,3 @@ const handle = ({ request }: Record<"request", Request>) => app.fetch(request);
 export const Route = createFileRoute("/api/$")({
   server: { handlers: { GET: handle, POST: handle } },
 });
-
-export const getTreaty = createIsomorphicFn()
-  .server(() => treaty(app).api)
-  .client(
-    () =>
-      treaty<App>(
-        typeof window === "undefined"
-          ? (process.env.API_URL ?? "http://localhost:3000")
-          : window.location.origin,
-      ).api,
-  );
