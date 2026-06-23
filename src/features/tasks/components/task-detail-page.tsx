@@ -1,9 +1,9 @@
-import { Button, Card, Chip, toast } from "@heroui/react";
+import { Card } from "@heroui/react";
 import { eq, useLiveSuspenseQuery } from "@tanstack/react-db";
 import { getRouteApi, Link } from "@tanstack/react-router";
 
 import { tasksCollection } from "~/features/tasks/collections/tasks-collection";
-import { PriorityChip } from "~/features/tasks/components/priority-chip";
+import { TaskDetailView } from "~/features/tasks/components/task-detail-view";
 
 const routeApi = getRouteApi("/_app/tasks/$taskId");
 
@@ -32,58 +32,5 @@ export function TaskDetailPage() {
     );
   }
 
-  return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <Link className="text-muted hover:text-accent text-sm hover:underline" to="/tasks">
-            ← Tasks
-          </Link>
-          <h2 className="mt-1 text-2xl font-semibold">{task.title}</h2>
-        </div>
-        {!task.completed ? (
-          <Button
-            onPress={() => {
-              const tx = tasksCollection.update(task.id, (draft) => {
-                draft.completed = true;
-              });
-
-              //? table / quick-add と同様、persist の reject を catch して toast する（未処理 rejection を防ぐ。）。
-              tx.isPersisted.promise.catch(() => {
-                toast.danger("タスクの完了に失敗しました。");
-              });
-            }}
-          >
-            Mark complete
-          </Button>
-        ) : null}
-      </div>
-
-      <Card>
-        <Card.Header>
-          <Card.Title>Details</Card.Title>
-        </Card.Header>
-        <Card.Content className="flex flex-col gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-muted text-sm">Priority</span>
-            <PriorityChip priority={task.priority} />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-muted text-sm">Status</span>
-            <Chip color={task.completed ? "success" : "default"} size="sm" variant="secondary">
-              <Chip.Label>{task.completed ? "Done" : "Open"}</Chip.Label>
-            </Chip>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-muted text-sm">Created</span>
-            <span className="text-sm">{task.createdAt.toLocaleString()}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-muted text-sm">ID</span>
-            <code className="bg-surface-secondary rounded px-2 py-1 text-xs">{task.id}</code>
-          </div>
-        </Card.Content>
-      </Card>
-    </div>
-  );
+  return <TaskDetailView task={task} />;
 }

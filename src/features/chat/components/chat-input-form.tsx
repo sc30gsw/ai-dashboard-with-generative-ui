@@ -1,4 +1,4 @@
-import { Button, Input } from "@heroui/react";
+import { Button, FieldError, Input, Label, TextField } from "@heroui/react";
 
 import { withForm } from "~/features/chat/hooks/form";
 
@@ -23,37 +23,37 @@ export const ChatInputForm = withForm({
         >
           <form.Field name="body">
             {(field) => (
-              <div className="flex flex-col gap-1">
-                <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <TextField className="flex-1" isInvalid={!field.state.meta.isValid}>
+                  <Label className="sr-only">Chat message</Label>
                   <Input
-                    aria-label="Chat message"
-                    className="flex-1"
                     name={field.name}
                     onBlur={field.handleBlur}
                     onChange={(event) => field.handleChange(event.target.value)}
                     placeholder="例: 高優先度で週次レポート提出タスクを追加"
                     value={field.state.value}
                   />
-                  <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
-                    {([canSubmit, isSubmitting]) => (
-                      <Button
-                        isDisabled={!canSubmit || isStreaming || hasPendingApproval}
-                        type="submit"
-                      >
-                        {isSubmitting ? "..." : "Send"}
-                      </Button>
-                    )}
-                  </form.Subscribe>
-                </div>
-                {!field.state.meta.isValid && (
-                  <em className="text-sm text-red-600" role="alert">
-                    {field.state.meta.errors
-                      .map(
-                        (error) => (error as unknown as { message?: string } | undefined)?.message,
-                      )
-                      .join(", ")}
-                  </em>
-                )}
+                  {!field.state.meta.isValid ? (
+                    <FieldError>
+                      {field.state.meta.errors
+                        .map(
+                          (error) =>
+                            (error as unknown as { message?: string } | undefined)?.message,
+                        )
+                        .join(", ")}
+                    </FieldError>
+                  ) : null}
+                </TextField>
+                <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting]}>
+                  {([canSubmit, isSubmitting]) => (
+                    <Button
+                      isDisabled={!canSubmit || isStreaming || hasPendingApproval}
+                      type="submit"
+                    >
+                      {isSubmitting ? "..." : "Send"}
+                    </Button>
+                  )}
+                </form.Subscribe>
               </div>
             )}
           </form.Field>

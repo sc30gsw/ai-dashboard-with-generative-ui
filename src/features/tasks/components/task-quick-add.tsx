@@ -1,4 +1,4 @@
-import { Button, Input, ListBox, Select, toast } from "@heroui/react";
+import { Button, FieldError, Input, Label, ListBox, Select, TextField, toast } from "@heroui/react";
 import { useForm } from "@tanstack/react-form";
 import { Result } from "better-result";
 
@@ -69,15 +69,21 @@ export function TaskQuickAdd() {
       <div className="flex flex-col gap-3 sm:flex-row">
         <form.Field name="title">
           {(field) => (
-            <Input
-              aria-label="Task title"
-              className="flex-1"
-              name={field.name}
-              onBlur={field.handleBlur}
-              onChange={(event) => field.handleChange(event.target.value)}
-              placeholder="New task title"
-              value={field.state.value}
-            />
+            <TextField className="flex-1" isInvalid={!field.state.meta.isValid}>
+              <Label className="sr-only">Task title</Label>
+              <Input
+                name={field.name}
+                onBlur={field.handleBlur}
+                onChange={(event) => field.handleChange(event.target.value)}
+                placeholder="New task title"
+                value={field.state.value}
+              />
+              {!field.state.meta.isValid ? (
+                <FieldError>
+                  {field.state.meta.errors.map((error) => formatFieldError(error)).join(", ")}
+                </FieldError>
+              ) : null}
+            </TextField>
           )}
         </form.Field>
         <form.Field name="priority">
