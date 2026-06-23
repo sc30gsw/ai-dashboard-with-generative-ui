@@ -11,7 +11,7 @@ const TASK_SORT_DIRECTIONS = ["asc", "desc"] as const;
 
 const TaskSchema = createSelectSchema(tasks);
 
-export const TaskViewSchema = TaskSchema.pick({
+const TaskViewSchema = TaskSchema.pick({
   completed: true,
   createdAt: true,
   id: true,
