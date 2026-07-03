@@ -56,7 +56,7 @@ export async function handleChat(request: Request) {
     system: systemPrompt,
     messages: convertToModelMessages(messages),
     tools: chatTools, // AI SDK server-side tools for writes
-    stopWhen: stepCountIs(3), // prevent runaway tool loops
+    stopWhen: stepCountIs(5), // 天気連動のタスク提案フロー（get_weather → reorder_tasks 提案 → 承認 → 実行）で最大4ステップの tool-calling が必要なため引き上げ済み
     toolChoice: "auto",
   });
 
