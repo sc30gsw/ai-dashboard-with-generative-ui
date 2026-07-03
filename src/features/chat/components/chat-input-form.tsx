@@ -1,6 +1,6 @@
 import { Button, FieldError, Input, Label, TextField } from "@heroui/react";
 
-import { withForm } from "~/features/chat/hooks/form";
+import { withForm } from "~/hooks/form";
 
 export const ChatInputForm = withForm({
   defaultValues: { body: "" },

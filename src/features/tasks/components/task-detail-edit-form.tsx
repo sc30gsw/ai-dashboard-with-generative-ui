@@ -16,7 +16,7 @@ import {
   TASK_PRIORITIES,
   type TaskPriority,
 } from "~/features/tasks/api/task-model";
-import { withForm } from "~/features/tasks/hooks/form";
+import { withForm } from "~/hooks/form";
 
 function formatFieldError(error: unknown) {
   if (typeof error === "string") {
