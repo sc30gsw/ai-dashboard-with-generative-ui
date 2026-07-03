@@ -28,8 +28,10 @@ function useRegisteredTaskTool(tool: TaskTool, elicitInput: ElicitInput) {
 }
 
 export function useTaskTools(elicitInput: ElicitInput) {
-  //? `exposeToWebMcp` フラグ付きツールのみを登録する。hooks のルールを満たすため、
-  //? 配列の map ではなく呼び出しを展開している。
+  //? 全タスクツールを無条件に Web MCP サーフェスへ登録する（`exposeToWebMcp` は現状すべて true —
+  //? task-tools.test.ts が保証）。`exposeToWebMcp` を条件分岐で見るには useWebMCP 自体を
+  //? 条件付きで呼ぶ必要があり、hooks のルール違反になるため行わない。配列の map ではなく
+  //? 呼び出しを展開しているのも同じ理由（hooks のルールを満たすため）。
   useRegisteredTaskTool(addTaskTool, elicitInput);
   useRegisteredTaskTool(bulkAddTasksTool, elicitInput);
   useRegisteredTaskTool(listTasksTool, elicitInput);

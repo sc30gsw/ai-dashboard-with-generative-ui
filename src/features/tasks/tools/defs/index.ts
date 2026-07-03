@@ -1,7 +1,7 @@
-//* タスクツールの確認ポリシー単一ソース。AI SDK / Web MCP の両アダプタがここを参照する。
-//* - mutates:       書き込みか（Web MCP の elicitation ゲート判定）。read(list_tasks) 以外すべて true。
+//* タスクツールの確認ポリシー単一ソース。AI SDK アダプタがここを参照する。
+//* - mutates:       書き込みか。read(list_tasks) 以外すべて true。Web MCP の elicitation ゲートは
+//*                   TaskTool.mutates を直接見る（このテーブル経由ではない。フェイルクローズにするため）。
 //* - needsApproval: AI SDK 側でチャット承認カードを挟むか。add 系は additive のため false。
-//* これを一元化することで、サーフェス間でフラグがドリフトしない（REVIEW #2 / #7）。
 
 import type { Tool } from "ai";
 
@@ -21,16 +21,3 @@ export const TASK_TOOL_POLICY = {
   reorder_tasks: { mutates: true, needsApproval: true },
   update_task: { mutates: true, needsApproval: true },
 } as const satisfies Record<TaskTool["name"], TaskToolPolicy>;
-
-type TaskToolName = keyof typeof TASK_TOOL_POLICY;
-
-//? TaskTool["name"] は useWebMCP のオプション型由来で string に広がっているため、
-//? TASK_TOOL_POLICY のキー判定は型ガードで絞り込む（キャストや `?? true` のような
-//? 到達不能フォールバックに頼らない）。
-function isTaskToolName(name: string): name is TaskToolName {
-  return name in TASK_TOOL_POLICY;
-}
-
-export function isMutatingTool(name: TaskTool["name"]) {
-  return isTaskToolName(name) && TASK_TOOL_POLICY[name].mutates;
-}
