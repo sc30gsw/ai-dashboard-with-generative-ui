@@ -9,8 +9,9 @@ import { genuiLibrary } from "~/features/chat/genui/library";
 import { extractOpenUILang, isOpenUILangResponse } from "~/features/chat/lib/clarify-response";
 import { chatUiState, messageText, toolPartsOf } from "~/features/chat/utils/message-parts";
 import { createReadToolMap } from "~/features/tasks/tools/adapters/tool-provider";
+import { createWeatherReadToolMap } from "~/features/weather/tools/adapters/tool-provider";
 
-const readToolMap = createReadToolMap();
+const readToolMap = { ...createReadToolMap(), ...createWeatherReadToolMap() };
 
 type AssistantMessageProps = {
   isLastMessage: boolean;

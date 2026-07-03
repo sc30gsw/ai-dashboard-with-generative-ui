@@ -10,6 +10,7 @@ import { completeTaskTool } from "~/features/tasks/tools/complete-task";
 import { deleteAllTasksTool } from "~/features/tasks/tools/delete-all-tasks";
 import { deleteTaskTool } from "~/features/tasks/tools/delete-task";
 import { listTasksTool } from "~/features/tasks/tools/list-tasks";
+import { reorderTasksTool } from "~/features/tasks/tools/reorder-tasks";
 import type { TaskTool } from "~/features/tasks/tools/tool";
 import { updateTaskTool } from "~/features/tasks/tools/update-task";
 
@@ -38,4 +39,5 @@ export function useTaskTools(elicitInput: ElicitInput) {
   useRegisteredTaskTool(deleteTaskTool, elicitInput);
   useRegisteredTaskTool(bulkDeleteTasksTool, elicitInput);
   useRegisteredTaskTool(deleteAllTasksTool, elicitInput);
+  useRegisteredTaskTool(reorderTasksTool, elicitInput);
 }

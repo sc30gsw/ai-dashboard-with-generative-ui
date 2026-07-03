@@ -6,6 +6,7 @@ import {
   streamText,
   validateUIMessages,
   type InferUITools,
+  type ToolSet,
   type UIDataTypes,
   type UIMessage,
 } from "ai";
@@ -17,10 +18,14 @@ import { systemPrompt } from "~/features/chat/lib/system-prompt";
 import { defaultListTasksSchema } from "~/features/tasks/api/task-model";
 import { TaskService } from "~/features/tasks/api/task-service";
 import { chatTools } from "~/features/tasks/tools/adapters/ai-sdk";
+import { weatherChatTools } from "~/features/weather/tools/adapters/ai-sdk";
 import { createRateLimiter } from "~/lib/rate-limit";
 
-//? chatTools 由来の tool 型を持つ UIMessage。validateUIMessages へ渡して tool parts まで型安全に検証する。
-type ChatMessage = UIMessage<never, UIDataTypes, InferUITools<typeof chatTools>>;
+//? tasks + weather の AI SDK ツールを統合。read(weather) と write(tasks) を同一ループで扱う。
+const allChatTools = { ...chatTools, ...weatherChatTools } as const satisfies ToolSet;
+
+//? allChatTools 由来の tool 型を持つ UIMessage。validateUIMessages へ渡して tool parts まで型安全に検証する。
+type ChatMessage = UIMessage<never, UIDataTypes, InferUITools<typeof allChatTools>>;
 
 const ChatRequestSchema = z.object({ messages: z.array(z.unknown()) });
 
@@ -114,7 +119,7 @@ async function handleChat({ request }: Record<"request", Request>) {
   //? LLM が出した tool parts も含め UIMessage 形状を検証。不正なら 400（security.md の境界検証）。
   const messages = await validateUIMessages<ChatMessage>({
     messages: parsed.data.messages,
-    tools: chatTools,
+    tools: allChatTools,
   }).catch(() => null);
 
   if (!messages) {
@@ -129,10 +134,10 @@ async function handleChat({ request }: Record<"request", Request>) {
   const result = streamText({
     messages: modelMessages,
     model: gateway(chatModel),
-    stopWhen: stepCountIs(3),
+    stopWhen: stepCountIs(5),
     system: `${systemPrompt}\n\n${boardState}`,
     toolChoice: "auto",
-    tools: chatTools,
+    tools: allChatTools,
   });
 
   return result.toUIMessageStreamResponse();

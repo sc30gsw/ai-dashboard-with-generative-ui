@@ -18,6 +18,7 @@ export const TASK_TOOL_POLICY = {
   delete_all_tasks: { mutates: true, needsApproval: true },
   delete_task: { mutates: true, needsApproval: true },
   list_tasks: { mutates: false, needsApproval: false },
+  reorder_tasks: { mutates: true, needsApproval: true },
   update_task: { mutates: true, needsApproval: true },
 } as const satisfies Record<TaskTool["name"], TaskToolPolicy>;
 

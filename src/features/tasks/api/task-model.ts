@@ -1,9 +1,10 @@
 import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
-import { PRIORITIES, tasks } from "~/db/schema";
+import { PRIORITIES, TASK_LOCATIONS, tasks } from "~/db/schema";
 
 export const TASK_PRIORITIES = PRIORITIES;
+const TaskLocationSchema = z.enum(TASK_LOCATIONS);
 const TASK_PRIORITY_FILTERS = ["all", ...TASK_PRIORITIES] as const;
 export const TASK_STATUS_FILTERS = ["all", "active", "completed"] as const;
 const TASK_SORT_BY_FIELDS = ["createdAt", "priority", "title"] as const;
@@ -54,6 +55,8 @@ const optionalNonEmptyString = z.preprocess(
 );
 
 export const CreateTaskSchema = z.object({
+  dueDate: z.iso.date().optional(),
+  location: TaskLocationSchema.optional(),
   priority: TaskPrioritySchema,
   title: z.string().trim().min(1, "Title is required"),
 });
@@ -69,13 +72,19 @@ export const AddTaskToolInputSchema = CreateTaskSchema.extend({
 export const UpdateTaskToolInputSchema = z
   .object({
     completed: z.boolean().optional().describe("Set completion state"),
+    dueDate: z.iso.date().optional().describe("New due date"),
+    location: TaskLocationSchema.optional().describe("New location"),
     priority: TaskPrioritySchema.optional().describe("New priority"),
     sourceTitle: z.string().trim().min(1).describe("Current title of the task to update"),
     title: z.string().trim().min(1).optional().describe("New title (rename)"),
   })
   .refine(
     (value) =>
-      value.title !== undefined || value.priority !== undefined || value.completed !== undefined,
+      value.title !== undefined ||
+      value.priority !== undefined ||
+      value.completed !== undefined ||
+      value.dueDate !== undefined ||
+      value.location !== undefined,
     "Provide at least one field to update",
   );
 
@@ -97,6 +106,10 @@ export const BulkUpdateTasksSchema = z
     //? 全件適用（フィルタなし）の明示意図。未指定で filters が空なら service 層が throw する。
     confirmAll: z.boolean().optional(),
     completed: z.boolean().optional(),
+    //? 設定値（SET）: 一致タスクをこの due date にする。
+    dueDate: z.iso.date().optional(),
+    //? 設定値（SET）: 一致タスクをこの location にする。
+    location: TaskLocationSchema.optional(),
     //? 設定値（SET）: 一致タスクをこの priority にする。
     priority: TaskPrioritySchema.optional(),
     //? 絞り込み（FILTER）: この priority のタスクだけを対象にする。priority(SET) とは別キー。
@@ -108,7 +121,11 @@ export const BulkUpdateTasksSchema = z
   })
   .refine(
     (input) =>
-      input.title !== undefined || input.priority !== undefined || input.completed !== undefined,
+      input.title !== undefined ||
+      input.priority !== undefined ||
+      input.completed !== undefined ||
+      input.dueDate !== undefined ||
+      input.location !== undefined,
     "Provide at least one field to update",
   );
 
@@ -174,13 +191,19 @@ export const defaultListTasksSchema = {
 export const UpdateTaskSchema = z
   .object({
     completed: z.boolean().optional(),
+    dueDate: z.iso.date().optional(),
     id: z.string().min(1),
+    location: TaskLocationSchema.optional(),
     priority: TaskPrioritySchema.optional(),
     title: z.string().trim().min(1, "Title is required").optional(),
   })
   .refine(
     (input) =>
-      input.title !== undefined || input.priority !== undefined || input.completed !== undefined,
+      input.title !== undefined ||
+      input.priority !== undefined ||
+      input.completed !== undefined ||
+      input.dueDate !== undefined ||
+      input.location !== undefined,
     "Provide at least one task field to update",
   );
 
@@ -194,6 +217,14 @@ export const DeleteAllTasksOutputSchema = z.object({
   deletedCount: z.number().int().nonnegative(),
 });
 
+export const ReorderTasksSchema = z.object({
+  orderedIds: z.array(z.string().min(1)).min(1),
+});
+
+export const ReorderTasksOutputSchema = z.object({
+  tasks: z.array(TaskViewToolOutputSchema),
+});
+
 export type Task = z.infer<typeof TaskSchema>;
 export type TaskPriority = Task["priority"];
 export type TaskPriorityFilter = z.infer<typeof TaskPriorityFilterSchema>;
@@ -205,6 +236,7 @@ export type BulkUpdateTasksInput = z.infer<typeof BulkUpdateTasksSchema>;
 export type BulkDeleteTasksInput = z.infer<typeof BulkDeleteTasksSchema>;
 export type ListTasksInput = z.infer<typeof ListTasksSchema>;
 export type UpdateTaskInput = z.infer<typeof UpdateTaskSchema>;
+export type ReorderTasksInput = z.infer<typeof ReorderTasksSchema>;
 export type TaskListFilterFormValues = z.infer<typeof TaskListFilterFormSchema>;
 
 export const TASK_PRIORITY_RANK = {

@@ -24,6 +24,7 @@ const EXPECTED_TOOL_NAMES = [
   "delete_task",
   "bulk_delete_tasks",
   "delete_all_tasks",
+  "reorder_tasks",
 ] as const satisfies readonly TaskTool["name"][];
 
 type TestModelContext = {

@@ -2,13 +2,17 @@ import { Result } from "better-result";
 import { beforeEach, expect, test, vi } from "vite-plus/test";
 
 //? service を差し替え、エラー分岐（内部メッセージ）でも汎用メッセージへ変換されることを検証する。
-const { listResult } = vi.hoisted(() => {
-  return { listResult: { current: null as unknown } };
+const { listResult, reorderResult } = vi.hoisted(() => {
+  return {
+    listResult: { current: null as unknown },
+    reorderResult: { current: null as unknown },
+  };
 });
 
 vi.mock("~/features/tasks/api/task-service", () => ({
   TaskService: {
     list: async () => listResult.current,
+    reorder: async () => reorderResult.current,
   },
 }));
 
@@ -44,4 +48,37 @@ test("success branch returns the real tasks unchanged", async () => {
 
   expect(data.ok).toBe(true);
   expect(data.tasks).toEqual(tasks);
+});
+
+test("POST /tasks/reorder with a valid body returns ok:true", async () => {
+  const { taskRoutes } = await import("~/features/tasks/api/task-routes");
+
+  const tasks = [{ completed: false, id: "1", priority: "high", title: "t", sortOrder: 1 }];
+  reorderResult.current = Result.ok(tasks);
+
+  const response = await taskRoutes.handle(
+    new Request("http://localhost/tasks/reorder", {
+      body: JSON.stringify({ orderedIds: ["1"] }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    }),
+  );
+  const data = await response.json();
+
+  expect(data.ok).toBe(true);
+  expect(data.tasks).toEqual(tasks);
+});
+
+test("POST /tasks/reorder with an empty orderedIds fails validation", async () => {
+  const { taskRoutes } = await import("~/features/tasks/api/task-routes");
+
+  const response = await taskRoutes.handle(
+    new Request("http://localhost/tasks/reorder", {
+      body: JSON.stringify({ orderedIds: [] }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    }),
+  );
+
+  expect(response.status).not.toBe(200);
 });

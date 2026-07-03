@@ -10,6 +10,7 @@ import {
   DeleteAllTasksSchema,
   DeleteTaskSchema,
   ListTasksSchema,
+  ReorderTasksSchema,
   UpdateTaskSchema,
 } from "~/features/tasks/api/task-model";
 import { TaskService } from "~/features/tasks/api/task-service";
@@ -131,4 +132,15 @@ export const taskRoutes = new Elysia({ prefix: "/tasks" })
         : { ok: true as const, result: result.value };
     },
     { body: DeleteAllTasksSchema },
+  )
+  .post(
+    "/reorder",
+    async ({ body }) => {
+      const result = await TaskService.reorder(body);
+
+      return Result.isError(result)
+        ? errorResponse(result.error)
+        : { ok: true as const, tasks: result.value };
+    },
+    { body: ReorderTasksSchema },
   );

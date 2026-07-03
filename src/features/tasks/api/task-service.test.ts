@@ -16,6 +16,21 @@ function makeDb() {
   return drizzle({ client, schema: { tasks } });
 }
 
+async function createTasksTable(db: ReturnType<typeof makeDb>) {
+  await db.run(
+    `CREATE TABLE tasks (
+      id text PRIMARY KEY NOT NULL,
+      title text NOT NULL,
+      priority text DEFAULT 'medium' NOT NULL,
+      completed integer DEFAULT 0 NOT NULL,
+      created_at integer DEFAULT (unixepoch()) NOT NULL,
+      due_date integer,
+      location text,
+      sort_order integer
+    )`,
+  );
+}
+
 vi.mock("~/db", () => ({
   get db() {
     if (!testDb.current) {
@@ -30,15 +45,7 @@ async function seed() {
   const db = makeDb();
   testDb.current = db;
 
-  await db.run(
-    `CREATE TABLE tasks (
-      id text PRIMARY KEY NOT NULL,
-      title text NOT NULL,
-      priority text DEFAULT 'medium' NOT NULL,
-      completed integer DEFAULT 0 NOT NULL,
-      created_at integer DEFAULT (unixepoch()) NOT NULL
-    )`,
-  );
+  await createTasksTable(db);
 
   await db.insert(tasks).values([
     { id: "h1", priority: "high", title: "high one", completed: false },
@@ -125,6 +132,99 @@ test("bulkUpdate with confirmAll:true updates every task (#6)", async () => {
   }
 });
 
+test("list() with default sortBy orders by sortOrder ascending, nulls last, tie-broken by createdAt", async () => {
+  const { TaskService } = await import("~/features/tasks/api/task-service");
+
+  //? 既存の seed() の4件を削除し、sortOrder と createdAt を明示制御したデータで並び順を検証する。
+  const db = makeDb();
+  testDb.current = db;
+
+  await createTasksTable(db);
+
+  await db.insert(tasks).values([
+    { id: "no-order-early", createdAt: new Date(1_000), priority: "medium", title: "a" },
+    { id: "order-2", createdAt: new Date(4_000), priority: "medium", sortOrder: 2, title: "b" },
+    {
+      id: "order-1-late",
+      createdAt: new Date(3_000),
+      priority: "medium",
+      sortOrder: 1,
+      title: "c",
+    },
+    {
+      id: "order-1-early",
+      createdAt: new Date(2_000),
+      priority: "medium",
+      sortOrder: 1,
+      title: "d",
+    },
+    { id: "no-order-late", createdAt: new Date(5_000), priority: "medium", title: "e" },
+  ]);
+
+  const result = await TaskService.list({
+    sortBy: "createdAt",
+    sortDirection: "asc",
+    status: "all",
+  });
+
+  expect(Result.isOk(result)).toBe(true);
+
+  if (Result.isOk(result)) {
+    expect(result.value.map((task) => task.id)).toEqual([
+      "order-1-early",
+      "order-1-late",
+      "order-2",
+      "no-order-early",
+      "no-order-late",
+    ]);
+  }
+});
+
+test("list() with sortBy:createdAt and sortDirection:desc orders by createdAt descending, ignoring sortOrder", async () => {
+  const { TaskService } = await import("~/features/tasks/api/task-service");
+
+  //? sortOrder が createdAt の並びと矛盾するデータを用意し、desc 指定時は sortOrder を無視して
+  //? createdAt の新しい順に並ぶことを検証する。
+  const db = makeDb();
+  testDb.current = db;
+
+  await createTasksTable(db);
+
+  await db.insert(tasks).values([
+    {
+      id: "old-high-order",
+      createdAt: new Date(1_000),
+      priority: "medium",
+      sortOrder: 5,
+      title: "a",
+    },
+    { id: "mid-no-order", createdAt: new Date(3_000), priority: "medium", title: "b" },
+    {
+      id: "new-low-order",
+      createdAt: new Date(5_000),
+      priority: "medium",
+      sortOrder: 1,
+      title: "c",
+    },
+  ]);
+
+  const result = await TaskService.list({
+    sortBy: "createdAt",
+    sortDirection: "desc",
+    status: "all",
+  });
+
+  expect(Result.isOk(result)).toBe(true);
+
+  if (Result.isOk(result)) {
+    expect(result.value.map((task) => task.id)).toEqual([
+      "new-low-order",
+      "mid-no-order",
+      "old-high-order",
+    ]);
+  }
+});
+
 test("bulkDelete with an all-undefined filter throws and deletes nothing (R2)", async () => {
   const { TaskService } = await import("~/features/tasks/api/task-service");
 
@@ -147,5 +247,51 @@ test("bulkDelete with an all-undefined filter throws and deletes nothing (R2)", 
   //? ガードにより全件 DELETE は起きず、4件残ったまま。
   if (Result.isOk(all)) {
     expect(all.value.length).toBe(4);
+  }
+});
+
+test("reorder applies sortOrder 1..N in the given orderedIds order", async () => {
+  const { TaskService } = await import("~/features/tasks/api/task-service");
+
+  const result = await TaskService.reorder({ orderedIds: ["l1", "h1", "m1"] });
+
+  expect(Result.isOk(result)).toBe(true);
+
+  const all = await TaskService.list({
+    sortBy: "createdAt",
+    sortDirection: "asc",
+    status: "all",
+  });
+
+  expect(Result.isOk(all)).toBe(true);
+
+  if (Result.isOk(all)) {
+    const byId = new Map(all.value.map((task) => [task.id, task.sortOrder]));
+    expect(byId.get("l1")).toBe(1);
+    expect(byId.get("h1")).toBe(2);
+    expect(byId.get("m1")).toBe(3);
+    //? orderedIds に含まれない h2 の sortOrder は変更されない（未設定のまま）。
+    expect(byId.get("h2")).toBeNull();
+  }
+});
+
+test("reorder with an unknown id fails all-or-nothing (no sortOrder is changed)", async () => {
+  const { TaskService } = await import("~/features/tasks/api/task-service");
+
+  const result = await TaskService.reorder({ orderedIds: ["h1", "does-not-exist"] });
+
+  expect(Result.isError(result)).toBe(true);
+
+  const all = await TaskService.list({
+    sortBy: "createdAt",
+    sortDirection: "asc",
+    status: "all",
+  });
+
+  expect(Result.isOk(all)).toBe(true);
+
+  if (Result.isOk(all)) {
+    //? 未知 id を含む場合は書き込み前に検証で弾かれ、既存の sortOrder は誰も変更されていない。
+    expect(all.value.every((task) => task.sortOrder === null)).toBe(true);
   }
 });

@@ -11,6 +11,7 @@ import type {
   BulkUpdateTasksInput,
   CreateTaskInput,
   ListTasksInput,
+  ReorderTasksInput,
   Task,
   UpdateTaskInput,
 } from "~/features/tasks/api/task-model";
@@ -39,7 +40,15 @@ function orderFor(input: ListTasksInput) {
     return direction(tasks.title);
   }
 
-  return direction(tasks.createdAt);
+  //? sortBy: "createdAt" かつ明示的に desc が指定された場合は sortOrder を無視し、
+  //? 純粋な createdAt desc（新しい順）で並べる。
+  if (input.sortDirection === "desc") {
+    return desc(tasks.createdAt);
+  }
+
+  //? デフォルト（createdAt/asc）のみ sortOrder 優先。未設定(NULL)のタスクは末尾に回す。
+  //? createdAt は list() 側の第2キーで tie-break する。
+  return sql`${tasks.sortOrder} IS NULL, ${tasks.sortOrder} ASC`;
 }
 
 function titleLikeCondition(term: string) {
@@ -71,9 +80,17 @@ function statusFilters(input: { status: ListTasksInput["status"] }) {
   ]);
 }
 
-function taskUpdates(input: Pick<BulkUpdateTasksInput, "completed" | "priority" | "title">) {
+function taskUpdates(
+  input: Pick<BulkUpdateTasksInput, "completed" | "dueDate" | "location" | "priority" | "title">,
+) {
   return pickBy(
-    { completed: input.completed, priority: input.priority, title: input.title },
+    {
+      completed: input.completed,
+      dueDate: input.dueDate === undefined ? undefined : new Date(input.dueDate),
+      location: input.location,
+      priority: input.priority,
+      title: input.title,
+    },
     (value) => value !== undefined,
   );
 }
@@ -83,7 +100,13 @@ export abstract class TaskService {
     return Result.tryPromise({
       catch: (cause) => new TaskError({ cause, message: "Failed to add task" }),
       try: async () => {
-        const [task] = await db.insert(tasks).values(input).returning();
+        const [task] = await db
+          .insert(tasks)
+          .values({
+            ...input,
+            dueDate: input.dueDate === undefined ? undefined : new Date(input.dueDate),
+          })
+          .returning();
 
         if (!task) {
           throw new Error("Failed to add task");
@@ -98,7 +121,15 @@ export abstract class TaskService {
     return Result.tryPromise({
       catch: (cause) => new TaskError({ cause, message: "Failed to bulk add tasks" }),
       try: async () => {
-        const created = await db.insert(tasks).values(inputs).returning();
+        const created = await db
+          .insert(tasks)
+          .values(
+            inputs.map((input) => ({
+              ...input,
+              dueDate: input.dueDate === undefined ? undefined : new Date(input.dueDate),
+            })),
+          )
+          .returning();
 
         return { addedCount: created.length, tasks: created };
       },
@@ -246,6 +277,44 @@ export abstract class TaskService {
         }
 
         return task;
+      },
+    });
+  }
+
+  static reorder(input: ReorderTasksInput) {
+    return Result.tryPromise({
+      catch: (cause) => new TaskError({ cause, message: "Failed to reorder tasks" }),
+      try: async () => {
+        //? all-or-nothing: 未知/重複 id が混ざっていないか、書き込み前に必ず検証する。
+        const existing = await db
+          .select({ id: tasks.id })
+          .from(tasks)
+          .where(inArray(tasks.id, input.orderedIds));
+
+        if (existing.length !== input.orderedIds.length) {
+          throw new Error("One or more task ids do not exist or are duplicated");
+        }
+
+        //? libsql の HTTP 接続はインタラクティブトランザクション非対応。drizzle-orm libsql ドライバの
+        //? db.batch() は libsql の client.batch(..., "write") 相当のアトミックな複数ステートメント実行を
+        //? 提供するため、これで全 UPDATE を一括適用する（部分適用を防ぐ）。
+        const updateQueries = input.orderedIds.map((id, index) =>
+          db
+            .update(tasks)
+            .set({ sortOrder: index + 1 })
+            .where(eq(tasks.id, id))
+            .returning(),
+        );
+
+        const [first, ...rest] = updateQueries;
+
+        if (!first) {
+          throw new Error("orderedIds must not be empty");
+        }
+
+        const results = await db.batch([first, ...rest]);
+
+        return results.flat();
       },
     });
   }

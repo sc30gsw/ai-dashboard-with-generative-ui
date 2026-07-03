@@ -9,6 +9,7 @@ import {
   BulkDeleteTasksSchema,
   BulkUpdateTasksSchema,
   ListTasksSchema,
+  ReorderTasksSchema,
   toTaskView,
   UpdateTaskToolInputSchema,
 } from "~/features/tasks/api/task-model";
@@ -227,6 +228,26 @@ export const chatTools = {
       return {
         message: `${result.value.deletedCount}件のタスクをすべて削除しました。`,
         status: "success" as const,
+      };
+    },
+  }),
+
+  reorder_tasks: tool({
+    description:
+      "Reorder tasks by an explicit list of task ids (the new order). Use ONLY when the user has approved a proposed order. Requires user approval.",
+    inputSchema: ReorderTasksSchema,
+    needsApproval: TASK_TOOL_POLICY.reorder_tasks.needsApproval,
+    execute: async (input) => {
+      const result = await TaskService.reorder(input);
+
+      if (Result.isError(result)) {
+        return { message: result.error.message, status: "error" as const };
+      }
+
+      return {
+        message: `${result.value.length}件のタスクの並び順を変更しました。`,
+        status: "success" as const,
+        tasks: result.value.map(toTaskView),
       };
     },
   }),
