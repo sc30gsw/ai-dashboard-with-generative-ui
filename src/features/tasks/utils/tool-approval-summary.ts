@@ -12,6 +12,7 @@ export const TOOL_LABELS = {
   complete_task: "タスクを完了",
   delete_all_tasks: "全タスクを削除",
   delete_task: "タスクを削除",
+  reorder_tasks: "タスクの並び順を変更",
   update_task: "タスクを更新",
 } as const satisfies Record<keyof typeof chatTools, string>;
 
@@ -31,6 +32,7 @@ export function toolNameOf(type: ToolUIPart["type"]) {
 export function summarizeToolInput(
   name: ReturnType<typeof toolNameOf>,
   input: ToolUIPart["input"],
+  resolveTitle?: (id: string) => string | undefined,
 ) {
   if (!input || typeof input !== "object") {
     return "";
@@ -67,6 +69,20 @@ export function summarizeToolInput(
 
   if (name === "delete_all_tasks") {
     return "ボード上のすべてのタスクが対象です。";
+  }
+
+  if (name === "reorder_tasks") {
+    const orderedIds = Array.isArray(record.orderedIds)
+      ? record.orderedIds.filter((id): id is string => typeof id === "string")
+      : [];
+
+    if (orderedIds.length === 0) {
+      return "0件のタスク";
+    }
+
+    const titles = orderedIds.map((id) => resolveTitle?.(id) ?? id);
+
+    return `${orderedIds.length}件のタスク: ${titles.join(" → ")}`;
   }
 
   if (source) {

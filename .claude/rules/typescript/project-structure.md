@@ -54,7 +54,7 @@ import { helper } from "./helper";
 
 ## Feature inter-dependencies forbidden (with one scoped exception)
 
-Peer-to-peer cross-feature imports are forbidden. **Exception:** `tasks` is a **core domain** — `chat` and `dashboard` are view features over the `tasks` domain and MAY import from `~/features/tasks`. All other peer↔peer imports remain forbidden.
+Peer-to-peer cross-feature imports are forbidden. **Exception:** `tasks` and `weather` are **core domains** — `chat` and `dashboard` are view features over these domains and MAY import from `~/features/tasks` and `~/features/weather`; `tasks` MAY also import from `~/features/weather`. All other peer↔peer imports remain forbidden.
 
 ```typescript
 // WRONG: peer-to-peer import (orders → users)
@@ -64,9 +64,10 @@ import { UserSelect } from "~/features/users/components/user-select";
 // CORRECT: extract to src/components/
 import { UserSelect } from "~/components/user-select";
 
-// CORRECT: view feature importing from the core domain
+// CORRECT: view feature importing from a core domain
 // src/features/chat/components/chat-panel.tsx
 import { chatTools } from "~/features/tasks/tools/adapters/ai-sdk";
+import { weatherWidget } from "~/features/weather/components/weather-widget";
 ```
 
 ## Routes & default exports

@@ -5,7 +5,7 @@ import { useNavigate } from "@tanstack/react-router";
 import type { TaskView } from "~/features/tasks/api/task-model";
 import { tasksCollection } from "~/features/tasks/collections/tasks-collection";
 
-export function TaskDeleteDialog({ task }: { task: TaskView }) {
+export function TaskDeleteDialog({ task }: Record<"task", TaskView>) {
   const navigate = useNavigate();
 
   function handleDelete() {

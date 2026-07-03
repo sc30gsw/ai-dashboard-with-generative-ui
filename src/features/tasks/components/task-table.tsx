@@ -43,11 +43,7 @@ export function TaskTable({
                   <PriorityChip priority={task.priority} />
                 </Table.Cell>
                 <Table.Cell>
-                  <Chip
-                    color={task.completed ? "success" : "default"}
-                    size="sm"
-                    variant="secondary"
-                  >
+                  <Chip color={task.completed ? "success" : "default"} size="sm" variant="primary">
                     <Chip.Label>{task.completed ? "Done" : "Open"}</Chip.Label>
                   </Chip>
                 </Table.Cell>

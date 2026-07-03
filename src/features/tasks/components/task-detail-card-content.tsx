@@ -1,7 +1,6 @@
 import { toast } from "@heroui/react";
 import { getRouteApi } from "@tanstack/react-router";
 
-import { useAppForm } from "~/features/chat/hooks/form";
 import {
   CreateTaskDraftSchema,
   CreateTaskSchema,
@@ -10,6 +9,7 @@ import {
 import { tasksCollection } from "~/features/tasks/collections/tasks-collection";
 import { TaskDetailEditForm } from "~/features/tasks/components/task-detail-edit-form";
 import { TaskDetailInfo } from "~/features/tasks/components/task-detail-info";
+import { useAppForm } from "~/hooks/form";
 
 const routeApi = getRouteApi("/_app/tasks/$taskId");
 

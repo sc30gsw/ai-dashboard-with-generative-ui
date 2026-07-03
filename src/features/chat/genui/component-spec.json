@@ -232,6 +232,18 @@
     "Tag": {
       "signature": "Tag(text: string, icon?: string, size?: \"sm\" | \"md\" | \"lg\", variant?: \"neutral\" | \"info\" | \"success\" | \"warning\" | \"danger\")",
       "description": "Styled tag/badge with optional icon and variant"
+    },
+    "TaskList": {
+      "signature": "TaskList(tasks: {id: string, title: string, priority: \"low\" | \"medium\" | \"high\", completed: boolean}[])",
+      "description": "Task list with a built-in search box, priority filter, sort control, and priority/done status chips. Use this instead of Table to show, list, or filter tasks."
+    },
+    "WeatherWidget": {
+      "signature": "WeatherWidget(weather?: {daily: {date: string, humidity?: number, precipitationProbability: number, summary: string, tempMax: number, tempMin: number, weatherCode: number}[], date: string, humidity?: number, locationLabel: string, precipitationProbability: number, summary: string, tempMax: number, tempMin: number, weatherCode: number}, error?: string)",
+      "description": "Weather forecast card for a location: header with location and date, a headline summary with current temperature range and precipitation probability, a date picker, and a horizontal 7-day forecast strip. Use this instead of Card/TextContent to display weather data."
+    },
+    "TaskSuggestion": {
+      "signature": "TaskSuggestion(items: {id: string, title: string, priority: \"low\" | \"medium\" | \"high\", location?: \"indoor\" | \"outdoor\", reason: string}[], weather?: {date: string, locationLabel: string, summary: string, tempMax: number, tempMin: number, precipitationProbability: number, humidity?: number, weatherCode: number})",
+      "description": "Shows a weather-aware suggested task order with a reason per item. Emit at ROOT, not wrapped in Card."
     }
   },
   "componentGroups": [
@@ -346,6 +358,15 @@
     {
       "name": "Data Display",
       "components": ["TagBlock", "Tag"]
+    },
+    {
+      "components": ["TaskList", "WeatherWidget", "TaskSuggestion"],
+      "name": "Task domain",
+      "notes": [
+        "Use TaskList to show/list/filter tasks — built-in search box + priority/done chips.",
+        "Use WeatherWidget to show a weather forecast for a location, with a date picker and 7-day strip.",
+        "Use TaskSuggestion to show a weather-aware suggested task order with a reason per item — emit at ROOT, not wrapped in Card."
+      ]
     }
   ]
 }

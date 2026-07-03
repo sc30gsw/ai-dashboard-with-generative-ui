@@ -3,6 +3,8 @@ import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const PRIORITIES = ["low", "medium", "high"] as const satisfies readonly string[];
 
+export const TASK_LOCATIONS = ["indoor", "outdoor"] as const satisfies readonly string[];
+
 export const tasks = sqliteTable("tasks", {
   id: text("id")
     .primaryKey()
@@ -13,4 +15,7 @@ export const tasks = sqliteTable("tasks", {
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
+  dueDate: integer("due_date", { mode: "timestamp" }),
+  location: text("location", { enum: TASK_LOCATIONS }),
+  sortOrder: integer("sort_order"),
 });

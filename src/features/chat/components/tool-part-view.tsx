@@ -2,6 +2,7 @@ import { Button, Card, Chip } from "@heroui/react";
 import { cn } from "cnfast";
 
 import type { ToolUIPart } from "~/features/chat/utils/message-parts";
+import { tasksCollection } from "~/features/tasks/collections/tasks-collection";
 import {
   DELETE_TOOLS,
   DESTRUCTIVE_TOOLS,
@@ -31,7 +32,9 @@ export function ToolPartView({ part, onApprove }: ToolPartViewProps) {
       <Card aria-label="操作の確認">
         <Card.Content className="flex flex-col gap-2">
           <p className="text-sm font-semibold text-zinc-800">{label}</p>
-          <p className="text-sm text-zinc-600">{summarizeToolInput(name, part.input)}</p>
+          <p className="text-sm text-zinc-600">
+            {summarizeToolInput(name, part.input, (id) => tasksCollection.get(id)?.title)}
+          </p>
           <div className="flex gap-2">
             <Button
               className={cn(destructive && "bg-red-600 text-white hover:bg-red-700")}

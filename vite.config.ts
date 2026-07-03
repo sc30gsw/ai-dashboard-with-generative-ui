@@ -38,7 +38,7 @@ export default defineConfig({
       browser: true,
       node: true,
     },
-    ignorePatterns: ["**/routeTree.gen.ts"],
+    ignorePatterns: ["**/routeTree.gen.ts", "**/skills/**"],
     jsPlugins: [{ name: "react-doctor", specifier: "oxlint-plugin-react-doctor" }],
     options: {
       denyWarnings: true,

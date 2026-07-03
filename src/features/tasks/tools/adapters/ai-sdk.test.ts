@@ -35,7 +35,10 @@ async function seed() {
       title text NOT NULL,
       priority text DEFAULT 'medium' NOT NULL,
       completed integer DEFAULT 0 NOT NULL,
-      created_at integer DEFAULT (unixepoch()) NOT NULL
+      created_at integer DEFAULT (unixepoch()) NOT NULL,
+      due_date integer,
+      location text,
+      sort_order integer
     )`,
   );
 
@@ -103,5 +106,74 @@ test("update_task with an exact title resolves and updates that task (R8)", asyn
 
   if (Result.isOk(all)) {
     expect(all.value[0]?.title).toBe("報告書を提出");
+  }
+});
+
+test("reorder_tasks.needsApproval is true (read from TASK_TOOL_POLICY)", async () => {
+  const { chatTools } = await import("~/features/tasks/tools/adapters/ai-sdk");
+
+  expect(chatTools.reorder_tasks.needsApproval).toBe(true);
+});
+
+async function runReorderTasks(input: { orderedIds: string[] }) {
+  const { chatTools } = await import("~/features/tasks/tools/adapters/ai-sdk");
+  const execute = chatTools.reorder_tasks.execute;
+
+  if (!execute) {
+    throw new Error("reorder_tasks.execute is not defined");
+  }
+
+  const output = await execute(input, {
+    experimental_context: undefined,
+    messages: [],
+    toolCallId: "t",
+  });
+
+  if (typeof output !== "object" || output === null || !("status" in output)) {
+    throw new Error("reorder_tasks.execute did not return a result object");
+  }
+
+  return output;
+}
+
+test("reorder_tasks with a valid ordered id list reorders and returns success with tasks (R8)", async () => {
+  const db = makeDb();
+  testDb.current = db;
+
+  await db.run(
+    `CREATE TABLE tasks (
+      id text PRIMARY KEY NOT NULL,
+      title text NOT NULL,
+      priority text DEFAULT 'medium' NOT NULL,
+      completed integer DEFAULT 0 NOT NULL,
+      created_at integer DEFAULT (unixepoch()) NOT NULL,
+      due_date integer,
+      location text,
+      sort_order integer
+    )`,
+  );
+
+  await db.insert(tasks).values([
+    { id: "t1", priority: "medium", title: "タスク1", completed: false, sortOrder: 1 },
+    { id: "t2", priority: "medium", title: "タスク2", completed: false, sortOrder: 2 },
+  ]);
+
+  const output = await runReorderTasks({ orderedIds: ["t2", "t1"] });
+
+  expect(output.status).toBe("success");
+
+  if (output.status === "success") {
+    expect(output.message).toContain("2件");
+    expect(output.tasks).toHaveLength(2);
+  }
+});
+
+test("reorder_tasks with an unknown id returns the error result from TaskService.reorder", async () => {
+  const output = await runReorderTasks({ orderedIds: ["t1", "unknown-id"] });
+
+  expect(output.status).toBe("error");
+
+  if (output.status === "error") {
+    expect(output.message).toBe("Failed to reorder tasks");
   }
 });

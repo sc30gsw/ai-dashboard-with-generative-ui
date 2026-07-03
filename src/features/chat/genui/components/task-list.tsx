@@ -11,12 +11,7 @@ import {
 } from "~/features/chat/constants/tasks-list-options";
 import { taskListPropsSchema, type TaskRow } from "~/features/chat/schemas/task-list-schema";
 import { TASK_PRIORITY_RANK } from "~/features/tasks/api/task-model";
-
-const PRIORITY_COLOR = {
-  high: "danger",
-  low: "default",
-  medium: "warning",
-} as const satisfies Record<TaskRow["priority"], "danger" | "default" | "warning">;
+import { PriorityChip } from "~/features/tasks/components/priority-chip";
 
 function sortTasks(tasks: TaskRow[], sortKey: (typeof SORTS)[number]) {
   if (sortKey === "priority") {
@@ -32,7 +27,11 @@ function sortTasks(tasks: TaskRow[], sortKey: (typeof SORTS)[number]) {
 
 export const taskList = defineComponent({
   component: function TaskListView({ props }: ComponentRenderProps<Record<"tasks", TaskRow[]>>) {
-    const { tasks } = props;
+    //? OpenUI の Query() はホイスト中（実データ到着前）に null を渡すことがある
+    //? （Zod スキーマ上は非 null な配列でも、ストリーミング中の一時状態はスキーマ適用外）。
+    //? ガードなしで `.filter()` すると "Cannot read properties of null" で丸ごとクラッシュするため、
+    //? 未解決中は空配列として扱う。
+    const tasks = props.tasks ?? [];
 
     const [query, setQuery] = useState("");
     const [priority, setPriority] = useState<(typeof PRIORITY_FILTERS)[number]>("all");
@@ -127,15 +126,13 @@ export const taskList = defineComponent({
                       <Table.Row id={task.id}>
                         <Table.Cell>{task.title}</Table.Cell>
                         <Table.Cell>
-                          <Chip color={PRIORITY_COLOR[task.priority]} size="sm" variant="secondary">
-                            <Chip.Label>{task.priority}</Chip.Label>
-                          </Chip>
+                          <PriorityChip priority={task.priority} />
                         </Table.Cell>
                         <Table.Cell>
                           <Chip
                             color={task.completed ? "success" : "default"}
                             size="sm"
-                            variant="secondary"
+                            variant="primary"
                           >
                             <Chip.Label>{task.completed ? "完了" : "未完了"}</Chip.Label>
                           </Chip>

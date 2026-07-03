@@ -6,11 +6,11 @@ import type { ComponentProps } from "react";
 
 import { ToolPartView, type ToolPartViewProps } from "~/features/chat/components/tool-part-view";
 import { genuiLibrary } from "~/features/chat/genui/library";
-import { extractOpenUILang, isOpenUILangResponse } from "~/features/chat/lib/clarify-response";
+import { createChatToolProviderMap } from "~/features/chat/genui/tool-provider-map";
+import { extractOpenUILang, resolveIsOpenUiLang } from "~/features/chat/lib/clarify-response";
 import { chatUiState, messageText, toolPartsOf } from "~/features/chat/utils/message-parts";
-import { createReadToolMap } from "~/features/tasks/tools/adapters/tool-provider";
 
-const readToolMap = createReadToolMap();
+const readToolMap = createChatToolProviderMap();
 
 type AssistantMessageProps = {
   isLastMessage: boolean;
@@ -33,11 +33,7 @@ export function AssistantMessage({
 }: AssistantMessageProps) {
   const toolParts = toolPartsOf(message.parts);
   const text = messageText(message.parts);
-  //? ストリーミング中の READ 応答は "root =" が出揃うまで散文 Card に誤表示される。"root =" の前方一致なら
-  //? （最終メッセージのストリーミング中のみ）Lang 扱いにし、散文化のちらつき／再マウントを防ぐ。
-  const trimmedStart = text.trimStart();
-  const looksLikeLangStart = "root =".startsWith(trimmedStart) || trimmedStart.startsWith("root =");
-  const isLang = isOpenUILangResponse(text) || (isStreaming && isLastMessage && looksLikeLangStart);
+  const isLang = resolveIsOpenUiLang(text, { isLastMessage, isStreaming });
 
   if (text.length === 0 && toolParts.length === 0) {
     return null;

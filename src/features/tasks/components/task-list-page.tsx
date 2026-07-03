@@ -1,6 +1,7 @@
 import { Card } from "@heroui/react";
 import { Suspense } from "react";
 
+import { WeatherSuggestionPanel } from "~/components/weather-suggestion-panel";
 import { TaskListFilters } from "~/features/tasks/components/task-list-filters";
 import { TaskQuickAdd } from "~/features/tasks/components/task-quick-add";
 import { TaskTable } from "~/features/tasks/components/task-table";
@@ -24,6 +25,8 @@ export function TaskListPage() {
           <TaskQuickAdd />
         </Card.Content>
       </Card>
+
+      <WeatherSuggestionPanel />
 
       <Card>
         <Card.Header className="flex flex-col gap-4">

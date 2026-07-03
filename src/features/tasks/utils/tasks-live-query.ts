@@ -39,6 +39,35 @@ function hasTaskFilters(filters: TasksQueryFilters) {
   return filters.status !== "all" || filters.priority !== "all" || filters.search.trim().length > 0;
 }
 
+function matchesTaskFilters(
+  task: { completed: boolean; priority: TaskPriorityFilter; title: string },
+  filters: TasksQueryFilters,
+) {
+  if (filters.status === "active" && task.completed) {
+    return false;
+  }
+
+  if (filters.status === "completed" && !task.completed) {
+    return false;
+  }
+
+  if (filters.priority !== "all" && task.priority !== filters.priority) {
+    return false;
+  }
+
+  const search = filters.search.trim();
+
+  return !search || task.title.toLowerCase().includes(search.toLowerCase());
+}
+
+//? "現在の結果集合" のいずれかに sortOrder が設定されているかをクライアントの手持ちコレクションから
+//? 判定する（サーバー側 orderFor() の事前カウントクエリと同じ規約）。
+function hasSortOrderInResultSet(filters: TasksQueryFilters) {
+  return tasksCollection.toArray.some(
+    (task) => matchesTaskFilters(task, filters) && task.sortOrder != null,
+  );
+}
+
 export function buildFilteredTasksQuery(
   query: InitialQueryBuilder,
   filters: TasksQueryFilters,
@@ -97,5 +126,15 @@ export function buildFilteredTasksQuery(
     return builder.orderBy(({ task }) => task.title, filters.sortDirection);
   }
 
+  //? sortBy: "createdAt" の場合、結果集合内のいずれかに sortOrder が設定されていれば、
+  //? 要求された sortDirection に関わらず sortOrder 優先（昇順・NULL は末尾）で並べる
+  //? （並べ替え操作が行われた意図を尊重する。サーバー側 orderFor() と同じ規約）。
+  if (hasSortOrderInResultSet(filters)) {
+    return builder
+      .orderBy(({ task }) => task.sortOrder, { direction: "asc", nulls: "last" })
+      .orderBy(({ task }) => task.createdAt, "asc");
+  }
+
+  //? sortOrder が誰にも設定されていなければ、従来通り createdAt を要求された方向で並べる。
   return builder.orderBy(({ task }) => task.createdAt, filters.sortDirection);
 }

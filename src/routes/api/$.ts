@@ -4,15 +4,17 @@ import { Elysia } from "elysia";
 import { z } from "zod";
 
 import { taskRoutes } from "~/features/tasks/api/task-routes";
+import { weatherRoutes } from "~/features/weather/api/weather-routes";
 
 const app = new Elysia({ prefix: "/api" })
   .use(openapi({ mapJsonSchema: { zod: z.toJSONSchema } }))
-  .use(taskRoutes);
+  .use(taskRoutes)
+  .use(weatherRoutes);
 
 export type App = typeof app;
 
 const handle = ({ request }: Record<"request", Request>) => app.fetch(request);
 
 export const Route = createFileRoute("/api/$")({
-  server: { handlers: { GET: handle, POST: handle } },
+  server: { handlers: { GET: handle, PATCH: handle, POST: handle } },
 });

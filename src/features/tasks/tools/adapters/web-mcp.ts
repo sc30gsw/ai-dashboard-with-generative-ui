@@ -2,7 +2,6 @@ import type { UseElicitationReturn } from "@mcp-b/react-webmcp";
 
 import { tasksCollection } from "~/features/tasks/collections/tasks-collection";
 import { runTaskTool } from "~/features/tasks/tools";
-import { isMutatingTool } from "~/features/tasks/tools/defs";
 import type { TaskTool } from "~/features/tasks/tools/tool";
 import {
   DESTRUCTIVE_TOOLS,
@@ -47,7 +46,7 @@ export async function executeWebMcpTool(
   args: Record<string, unknown>,
   elicitInput: ElicitInput,
 ) {
-  if (isMutatingTool(tool.name)) {
+  if (tool.mutates) {
     const confirmation = await elicitInput({
       message: buildElicitationMessage(tool, args),
       requestedSchema: { properties: {}, type: "object" },

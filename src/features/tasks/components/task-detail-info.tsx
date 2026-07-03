@@ -18,7 +18,7 @@ export function TaskDetailInfo({ onEdit, task }: { onEdit: () => void; task: Tas
           className="w-fit"
           color={task.completed ? "success" : "default"}
           size="sm"
-          variant="secondary"
+          variant="primary"
         >
           <Chip.Label>{task.completed ? "Done" : "Open"}</Chip.Label>
         </Chip>
