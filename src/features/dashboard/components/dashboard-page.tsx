@@ -74,7 +74,12 @@ const PriorityDistributionChart = lazy(async () => {
   };
 });
 
-function StatsCard({ label, value }: { label: string; value: number }) {
+type StatsCardProps = {
+  label: string;
+  value: number;
+};
+
+function StatsCard({ label, value }: StatsCardProps) {
   return (
     <Card>
       <Card.Content className="py-5">
