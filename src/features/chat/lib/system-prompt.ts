@@ -1,4 +1,4 @@
-import { generatePrompt, type ComponentPromptSpec, type ToolSpec } from "@openuidev/lang-core";
+import { generatePrompt, type ToolSpec } from "@openuidev/lang-core";
 import { z } from "zod";
 
 import componentSpec from "~/features/chat/genui/component-spec.json";
@@ -40,12 +40,12 @@ Write tools:
 - When the user names a task in a previous turn and then gives a follow-up ("これを完了に", "これらをlowに"), reuse that title/keyword for the tool.
 
 ## Mode 3 — WEATHER-AWARE TASK SUGGESTION (「明日の天気でタスク順序を提案して」等)
-When the user asks to suggest or plan the order of tasks for a given day based on the weather, respond with OpenUI Lang: call Query("get_weather", ...) for that date/location AND Query("list_tasks", ...), then emit root = TaskSuggestion(items) as the ROOT — do NOT wrap it in Card.
+When the user asks to suggest or plan the order of tasks for a given day based on the weather, respond with OpenUI Lang: call Query("get_weather", ...) for that date/location AND Query("list_tasks", ...), then emit root = TaskSuggestion(items, weatherData) as the ROOT — pass the get_weather Query result identifier as the second argument so the day's weather summary (temperature, humidity, precipitation) renders above the list — do NOT wrap it in Card.
 
-- Do NOT ask the user for a city before calling get_weather. If the user did not name a city, OMIT city/latitude/longitude entirely from the Query args — the tool automatically falls back to the caller's current location. Only ask the user to name a city as a follow-up question if the get_weather Query result itself signals it could not determine a location (this should be rare).
+- Do NOT ask the user for a city before calling get_weather. If the user did not name a city, OMIT city/latitude/longitude entirely from the Query args — the tool automatically falls back to the caller's current location. In this mode NEVER reply with a question about the location: if the weather (including the location) cannot be determined, apply the graceful-degradation rule below instead of asking.
 - Derive items by REASONING over the weather result together with each task's priority and dueDate: if the weather is rainy or precipitationProbability is high, order indoor tasks before outdoor tasks; if it is clear, outdoor tasks may come first. Within that grouping, prefer higher priority and earlier dueDate first.
 - Every item MUST include a short reason string explaining why it is placed there (e.g. weather-driven, priority-driven, or due-date-driven).
-- If the get_weather Query result indicates an error or failure, degrade gracefully: still emit TaskSuggestion ordered by priority and dueDate alone (ignore weather grouping), and make exactly one item's reason state that weather data was unavailable.
+- If the get_weather Query result indicates an error or failure (including location_required / could not determine a location), degrade gracefully: still emit TaskSuggestion(items) WITHOUT the second argument, ordered by priority and dueDate alone (ignore weather grouping), and make exactly one item's reason state that weather data was unavailable.
 - When the user approves/confirms applying a previously shown suggestion — by clicking "この順序を適用" (which sends an explicit apply instruction with a JSON orderedIds array), or by replying naturally like "適用して" / "それで進めて" — call reorder_tasks with orderedIds set to the ids from the last TaskSuggestion's items array, in that exact list order (extract each item's id field; do not reorder, invent, or drop any id).
 
 ## Mode 4 — WEATHER DISPLAY (plain weather question, no task-ordering intent)
@@ -53,7 +53,7 @@ When the user simply asks about the weather (e.g. 「明日の東京の天気は
 
 - Do NOT ask the user for a city before calling get_weather. If no city was named, OMIT city/latitude/longitude entirely — the tool falls back to the caller's current location automatically. Only ask for a city afterward if the Query result signals it could not determine a location.
 - Distinguish this from Mode 3: if the request only asks to see/check the weather, use Mode 4 (WeatherWidget). If the request asks to plan, order, or suggest tasks based on the weather, use Mode 3 (TaskSuggestion) instead — never emit both for the same request.
-- If the get_weather Query result indicates failure, emit WeatherWidget(error=...) with a short Japanese error message instead of a normal weather render.
+- If the get_weather Query result indicates failure, emit WeatherWidget(null, "エラーメッセージ") — the first (weather) argument null, the second (error) argument a short Japanese error message — instead of a normal weather render. OpenUI Lang has no named arguments; both positional arguments must always be supplied in that order.
 
 ## Mode 5 — AD-HOC TASK CHARTS (chat-only, on-demand)
 When the user asks in conversation for a chart/graph of tasks (e.g. 「優先度別の円グラフ見せて」「完了状況をグラフで」「ステータス別に棒グラフで」), respond with OpenUI Lang using openuiChatLibrary's built-in chart components bound to Query("list_tasks", ...). This is separate from the dashboard's static charts — build it fresh from the live task list only when explicitly asked for, never proactively.
@@ -73,7 +73,7 @@ tasks = Query("list_tasks", {priority: "high", status: "all", sortBy: "createdAt
 const statusListExample = `root = TaskList(tasks)
 tasks = Query("list_tasks", {status: "active", sortBy: "createdAt", sortDirection: "asc"}, [])`;
 
-const weatherSuggestionExample = `root = TaskSuggestion(items)
+const weatherSuggestionExample = `root = TaskSuggestion(items, weatherData)
 weatherData = Query("get_weather", {city: "Tokyo", date: "2026-07-04"}, [])
 tasks = Query("list_tasks", {status: "active", sortBy: "createdAt", sortDirection: "asc"}, [])`;
 
@@ -106,47 +106,8 @@ const getWeatherToolSpec = {
   outputSchema: z.toJSONSchema(getWeatherTool.outputSchema),
 } as const satisfies ToolSpec;
 
-const taskListSpec = {
-  description:
-    "Task list with a built-in search box and priority/done status chips. Use this INSTEAD of Table to show, list, or filter tasks. Pass the list_tasks Query result array as the single argument.",
-  signature:
-    'TaskList(tasks: { id: string, title: string, priority: "low" | "medium" | "high", completed: boolean }[])',
-} as const satisfies ComponentPromptSpec;
-
-const taskSuggestionSpec = {
-  description:
-    "Shows a weather-aware suggested task order with a short reason per item. Emit at ROOT, not wrapped in Card. Use for requests to suggest/plan task order for a day based on the weather.",
-  signature:
-    'TaskSuggestion(items: { id: string, title: string, priority: "low" | "medium" | "high", location: "indoor" | "outdoor" | null, reason: string }[])',
-} as const satisfies ComponentPromptSpec;
-
-const weatherWidgetSpec = {
-  description:
-    "Weather forecast card for a location: header with location and date, a headline summary with current temperature range and precipitation probability, a date picker, and a horizontal 7-day forecast strip. Use this instead of Card/TextContent to display weather data. Emit at ROOT, not wrapped in Card. Use for plain weather questions with no task-ordering intent.",
-  signature:
-    "WeatherWidget(weather: { date: string, locationLabel: string, summary: string, tempMax: number, tempMin: number, precipitationProbability: number, weatherCode: number, daily: { date: string, summary: string, tempMax: number, tempMin: number, precipitationProbability: number, weatherCode: number }[] })",
-} as const satisfies ComponentPromptSpec;
-
 export const systemPrompt = generatePrompt({
   ...componentSpec,
-  componentGroups: [
-    ...(componentSpec.componentGroups ?? []),
-    {
-      components: ["TaskList", "TaskSuggestion", "WeatherWidget"],
-      name: "Task domain",
-      notes: [
-        "Use TaskList (not Table) for showing/listing/filtering tasks.",
-        "Use TaskSuggestion for weather-aware task order suggestions.",
-        "Use WeatherWidget for plain weather display requests (no task-ordering intent).",
-      ],
-    },
-  ],
-  components: {
-    ...componentSpec.components,
-    TaskList: taskListSpec,
-    TaskSuggestion: taskSuggestionSpec,
-    WeatherWidget: weatherWidgetSpec,
-  },
   preamble,
   toolExamples: [
     readListExample,
