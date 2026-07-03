@@ -44,6 +44,7 @@ export const GetWeatherQuerySchema = z
 
 const DailyWeatherSchema = z.object({
   date: z.string(),
+  humidity: z.number().min(0).max(100).optional(),
   precipitationProbability: z.number().min(0).max(100),
   summary: z.string(),
   tempMax: z.number(),
@@ -54,6 +55,7 @@ const DailyWeatherSchema = z.object({
 export const WeatherReportSchema = z.object({
   daily: z.array(DailyWeatherSchema).max(7),
   date: z.string(),
+  humidity: z.number().min(0).max(100).optional(),
   locationLabel: z.string(),
   precipitationProbability: z.number().min(0).max(100),
   summary: z.string(),
