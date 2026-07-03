@@ -5,6 +5,7 @@ import {
   Calendar,
   Card,
   CloseIcon,
+  DateField,
   DatePicker,
   Description,
   toast,
@@ -97,16 +98,24 @@ export function WeatherSuggestionPanel() {
       <Card.Content className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center gap-2">
           <DatePicker
+            className="w-40"
             onChange={(value) => {
               if (value) {
                 setSelectedDate(value.toString());
               }
             }}
           >
-            <DatePicker.Trigger aria-label="提案する日付を選択">
-              <DatePicker.TriggerIndicator />
-            </DatePicker.Trigger>
-            <DatePicker.Popover>
+            <DateField.Group>
+              <DateField.Input>
+                {(segment) => <DateField.Segment segment={segment} />}
+              </DateField.Input>
+              <DateField.Suffix>
+                <DatePicker.Trigger aria-label="提案する日付を選択">
+                  <DatePicker.TriggerIndicator />
+                </DatePicker.Trigger>
+              </DateField.Suffix>
+            </DateField.Group>
+            <DatePicker.Popover offset={8} placement="bottom end">
               <Calendar
                 isDateUnavailable={(date) => {
                   const iso = date.toString();

@@ -1,4 +1,4 @@
-import { Calendar, Card, Chip, DatePicker } from "@heroui/react";
+import { Calendar, Card, Chip, DateField, DatePicker } from "@heroui/react";
 import {
   type ComponentRenderProps,
   defineComponent,
@@ -88,6 +88,7 @@ export const weatherWidget = defineComponent({
               <Chip.Label>{date}</Chip.Label>
             </Chip>
             <DatePicker
+              className="w-40"
               onChange={(value) => {
                 if (value) {
                   const selectedDate = value.toString();
@@ -95,10 +96,17 @@ export const weatherWidget = defineComponent({
                 }
               }}
             >
-              <DatePicker.Trigger aria-label="日付を選択">
-                <DatePicker.TriggerIndicator />
-              </DatePicker.Trigger>
-              <DatePicker.Popover>
+              <DateField.Group>
+                <DateField.Input>
+                  {(segment) => <DateField.Segment segment={segment} />}
+                </DateField.Input>
+                <DateField.Suffix>
+                  <DatePicker.Trigger aria-label="日付を選択">
+                    <DatePicker.TriggerIndicator />
+                  </DatePicker.Trigger>
+                </DateField.Suffix>
+              </DateField.Group>
+              <DatePicker.Popover offset={8} placement="bottom end">
                 <Calendar>
                   <Calendar.Header>
                     <Calendar.NavButton slot="previous" />
