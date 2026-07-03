@@ -1,11 +1,11 @@
 import { Card } from "@heroui/react";
 import { Suspense } from "react";
 
+import { WeatherSuggestionPanel } from "~/components/weather-suggestion-panel";
 import { TaskListFilters } from "~/features/tasks/components/task-list-filters";
 import { TaskQuickAdd } from "~/features/tasks/components/task-quick-add";
 import { TaskTable } from "~/features/tasks/components/task-table";
 import { useTaskListFilters } from "~/features/tasks/hooks/use-tasks-list-filters";
-import { WeatherSuggestionPanel } from "~/features/weather/components/weather-suggestion-panel";
 
 export function TaskListPage() {
   const { filters, form } = useTaskListFilters();

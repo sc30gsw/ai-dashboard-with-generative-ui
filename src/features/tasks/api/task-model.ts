@@ -17,7 +17,11 @@ const TaskViewSchema = TaskSchema.pick({
   createdAt: true,
   id: true,
   priority: true,
+  sortOrder: true,
   title: true,
+}).extend({
+  //? 既存の呼び出し元/フィクスチャが sortOrder を持たない場合でも壊れないよう optional にする。
+  sortOrder: z.number().nullable().optional(),
 });
 export type TaskView = z.infer<typeof TaskViewSchema>;
 
@@ -218,7 +222,7 @@ export const DeleteAllTasksOutputSchema = z.object({
 });
 
 export const ReorderTasksSchema = z.object({
-  orderedIds: z.array(z.string().min(1)).min(1),
+  orderedIds: z.array(z.string().min(1).max(64)).min(1).max(100),
 });
 
 export const ReorderTasksOutputSchema = z.object({

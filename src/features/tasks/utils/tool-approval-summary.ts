@@ -32,6 +32,7 @@ export function toolNameOf(type: ToolUIPart["type"]) {
 export function summarizeToolInput(
   name: ReturnType<typeof toolNameOf>,
   input: ToolUIPart["input"],
+  resolveTitle?: (id: string) => string | undefined,
 ) {
   if (!input || typeof input !== "object") {
     return "";
@@ -71,8 +72,17 @@ export function summarizeToolInput(
   }
 
   if (name === "reorder_tasks") {
-    const orderedIds = Array.isArray(record.orderedIds) ? record.orderedIds : [];
-    return `${orderedIds.length}件のタスク`;
+    const orderedIds = Array.isArray(record.orderedIds)
+      ? record.orderedIds.filter((id): id is string => typeof id === "string")
+      : [];
+
+    if (orderedIds.length === 0) {
+      return "0件のタスク";
+    }
+
+    const titles = orderedIds.map((id) => resolveTitle?.(id) ?? id);
+
+    return `${orderedIds.length}件のタスク: ${titles.join(" → ")}`;
   }
 
   if (source) {

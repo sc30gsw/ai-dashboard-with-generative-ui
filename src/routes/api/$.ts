@@ -16,5 +16,5 @@ export type App = typeof app;
 const handle = ({ request }: Record<"request", Request>) => app.fetch(request);
 
 export const Route = createFileRoute("/api/$")({
-  server: { handlers: { GET: handle, POST: handle } },
+  server: { handlers: { GET: handle, PATCH: handle, POST: handle } },
 });

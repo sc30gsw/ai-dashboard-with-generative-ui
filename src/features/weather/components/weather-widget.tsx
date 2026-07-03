@@ -1,40 +1,12 @@
 import { Calendar, Card, Chip, DatePicker } from "@heroui/react";
-import { type ComponentRenderProps, defineComponent } from "@openuidev/react-lang";
-import { useState } from "react";
+import {
+  type ComponentRenderProps,
+  defineComponent,
+  useTriggerAction,
+} from "@openuidev/react-lang";
 import { z } from "zod";
 
-const WEATHER_CODE_EMOJI = {
-  0: "☀️",
-  1: "🌤️",
-  2: "⛅",
-  3: "☁️",
-  45: "🌫️",
-  48: "🌫️",
-  51: "🌦️",
-  53: "🌦️",
-  55: "🌦️",
-  56: "🌦️",
-  57: "🌦️",
-  61: "🌧️",
-  63: "🌧️",
-  65: "🌧️",
-  66: "🌧️",
-  67: "🌧️",
-  71: "🌨️",
-  73: "🌨️",
-  75: "🌨️",
-  77: "🌨️",
-  80: "🌦️",
-  81: "🌦️",
-  82: "🌦️",
-  95: "⛈️",
-  96: "⛈️",
-  99: "⛈️",
-} as const satisfies Record<number, string>;
-
-function emojiForWeatherCode(weatherCode: number) {
-  return WEATHER_CODE_EMOJI[weatherCode as keyof typeof WEATHER_CODE_EMOJI] ?? "🌡️";
-}
+import { emojiForWeatherCode } from "~/features/weather/lib/wmo-codes";
 
 const dailyWeatherPropsSchema = z.object({
   date: z.string().describe("ISO date (YYYY-MM-DD) for this forecast day"),
@@ -50,19 +22,30 @@ const dailyWeatherPropsSchema = z.object({
 const weatherWidgetPropsSchema = z.object({
   daily: z
     .array(dailyWeatherPropsSchema)
+    .optional()
     .describe("Up to 7 days of forecast data, in chronological order, for the 7-day strip"),
-  date: z.string().describe("ISO date (YYYY-MM-DD) currently displayed in the header"),
-  locationLabel: z.string().describe("Human-readable location name, e.g. '東京都'"),
+  date: z.string().optional().describe("ISO date (YYYY-MM-DD) currently displayed in the header"),
+  error: z
+    .string()
+    .nullable()
+    .optional()
+    .describe(
+      "Error message when weather data could not be fetched. When present, render a compact error-only card instead of the normal temperature/summary/daily-strip display.",
+    ),
+  locationLabel: z.string().optional().describe("Human-readable location name, e.g. '東京都'"),
   precipitationProbability: z
     .number()
+    .optional()
     .describe("Precipitation probability for the displayed date, as a percentage (0-100)"),
   summary: z
     .string()
+    .optional()
     .describe("Short weather summary for the displayed date, e.g. '晴れ' or '曇り'"),
-  tempMax: z.number().describe("Maximum temperature for the displayed date, in Celsius"),
-  tempMin: z.number().describe("Minimum temperature for the displayed date, in Celsius"),
+  tempMax: z.number().optional().describe("Maximum temperature for the displayed date, in Celsius"),
+  tempMin: z.number().optional().describe("Minimum temperature for the displayed date, in Celsius"),
   weatherCode: z
     .number()
+    .optional()
     .describe("WMO weather code for the displayed date, used to choose a display icon"),
 });
 
@@ -73,6 +56,7 @@ export const weatherWidget = defineComponent({
     const {
       daily,
       date,
+      error,
       locationLabel,
       precipitationProbability,
       summary,
@@ -80,10 +64,20 @@ export const weatherWidget = defineComponent({
       tempMin,
       weatherCode,
     } = props;
+    const triggerAction = useTriggerAction();
 
-    // Phase 2 will wire this to re-send a chat prompt for the picked date.
-    // For now the picker only reflects the selection locally — no side effects.
-    const [selectedDate, setSelectedDate] = useState(date);
+    if (error) {
+      return (
+        <Card>
+          <Card.Header>
+            <Card.Title>{locationLabel ?? "天気情報"}</Card.Title>
+          </Card.Header>
+          <Card.Content>
+            <p className="text-muted text-sm">{error}</p>
+          </Card.Content>
+        </Card>
+      );
+    }
 
     return (
       <Card>
@@ -91,12 +85,13 @@ export const weatherWidget = defineComponent({
           <Card.Title>{locationLabel}</Card.Title>
           <div className="flex items-center gap-2">
             <Chip color="default" size="sm" variant="secondary">
-              <Chip.Label>{selectedDate}</Chip.Label>
+              <Chip.Label>{date}</Chip.Label>
             </Chip>
             <DatePicker
               onChange={(value) => {
                 if (value) {
-                  setSelectedDate(value.toString());
+                  const selectedDate = value.toString();
+                  triggerAction(`${selectedDate} の天気でタスク順序を提案して`);
                 }
               }}
             >
@@ -126,7 +121,7 @@ export const weatherWidget = defineComponent({
         <Card.Content className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
             <span aria-hidden="true" className="text-4xl">
-              {emojiForWeatherCode(weatherCode)}
+              {emojiForWeatherCode(weatherCode ?? -1)}
             </span>
             <div>
               <p className="text-lg font-semibold">{summary}</p>
@@ -136,7 +131,7 @@ export const weatherWidget = defineComponent({
             </div>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-1">
-            {daily.map((day) => (
+            {(daily ?? []).map((day) => (
               <div
                 className="flex min-w-20 flex-col items-center gap-1 rounded-md border p-2 text-center"
                 key={day.date}

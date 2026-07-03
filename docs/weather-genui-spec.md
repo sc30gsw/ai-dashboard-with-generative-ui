@@ -124,6 +124,7 @@ src/features/weather/
 - 表示内容: 指定日の天気ラベル/アイコン・最高/最低気温・降水確率＋ 7 日分の概況ストリップ。
 - **DatePicker 内蔵**（HeroUI）: 日付変更 → `onAction` 経由で「{date} の天気でタスク順序を提案して」を再送信するラウンドトリップ。
 - チャット内は LLM が `Query()`（`get_weather`）付きで emit → toolProvider が自動解決。チャット外（§8.3）は同じ React 表示部を `GET /api/weather`（Eden）で直接データ供給して再利用する。
+  - **実装確認済み補記**: 実装では §8.3 のチャット外パネル（`WeatherSuggestionPanel`）も直接 Eden fetch の別データパスは持たず、チャット内と同じ `<Renderer toolProvider={...}>` + `Query()` 経路で `WeatherWidget` を表示している。レビューの結果、この構成で要件を満たすと判断し、直接データ供給パスの追加は不要（ギャップではなく設計判断）。
 
 ### 8.2 タスク順序提案 UI（`TaskSuggestion`）
 

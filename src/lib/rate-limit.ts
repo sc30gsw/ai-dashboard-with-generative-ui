@@ -15,39 +15,112 @@ type CreateRateLimiterOptions = RateLimitConfig &
   Partial<{
     //? 現在時刻の供給源。テストで決定的に時間を進めるため注入可能にする（Date.now の揺れを避ける）。
     now: () => number;
+    //? x-forwarded-for のようなスプーフ可能なキーで per-key 制限が回避されても総スループットに
+    //? 上限をかける、単一の共有ウィンドウ。省略時はグローバル判定を行わない。
+    global: RateLimitConfig;
+    //? buckets Map が保持する distinct key の上限。回転する偽キーによる無制限なメモリ増加を防ぐ。
+    maxKeys: number;
   }>;
 
 type WindowState = Record<"count" | "resetAt", number>;
+
+//? buckets Map の既定の distinct key 上限。
+const DEFAULT_MAX_KEYS = 1000;
+
+function checkWindow(
+  state: WindowState | undefined,
+  limit: RateLimitConfig,
+  current: number,
+): Record<"next" | "result", WindowState | RateLimitResult> & {
+  next: WindowState;
+  result: RateLimitResult;
+} {
+  //* ウィンドウ未開始、または期限切れなら新しいウィンドウを開始する（固定ウィンドウ）。
+  if (!state || current >= state.resetAt) {
+    return {
+      next: { count: 1, resetAt: current + limit.windowMs },
+      result: { allowed: true, retryAfterSeconds: 0 },
+    };
+  }
+
+  if (state.count >= limit.max) {
+    return {
+      next: state,
+      result: {
+        allowed: false,
+        retryAfterSeconds: Math.max(1, Math.ceil((state.resetAt - current) / 1000)),
+      },
+    };
+  }
+
+  return {
+    next: { count: state.count + 1, resetAt: state.resetAt },
+    result: { allowed: true, retryAfterSeconds: 0 },
+  };
+}
 
 export function createRateLimiter({
   max,
   windowMs,
   now = () => Date.now(),
+  global,
+  maxKeys = DEFAULT_MAX_KEYS,
 }: CreateRateLimiterOptions) {
   const buckets = new Map<string, WindowState>();
+  let globalState: WindowState | undefined;
+
+  //* Map の挿入順（FIFO）で最古のキーから追い出す。真の LRU には最終アクセス時刻の追跡が
+  //* 追加で必要になるが、固定ウィンドウ・レートリミッタの用途では十分な近似であり、
+  //* 実装をシンプルに保てるためこちらを選択した。
+  function evictOldestIfOverCapacity(key: string) {
+    if (buckets.has(key)) {
+      //? 既存キーの更新は distinct key 数を増やさないため追い出し不要。
+      return;
+    }
+
+    while (buckets.size >= maxKeys) {
+      const oldestKey = buckets.keys().next().value;
+
+      if (oldestKey === undefined) {
+        break;
+      }
+
+      buckets.delete(oldestKey);
+    }
+  }
 
   function check(key: string): RateLimitResult {
     const current = now();
-    const state = buckets.get(key);
 
-    //* ウィンドウ未開始、または期限切れなら新しいウィンドウを開始する（固定ウィンドウ）。
-    if (!state || current >= state.resetAt) {
-      buckets.set(key, { count: 1, resetAt: current + windowMs });
+    //* per-key チェックより先にグローバル集約チェックを行う。x-forwarded-for のような
+    //* スプーフ可能なキーを回転させて per-key 制限を回避しても、総量に上限がかかる。
+    if (global) {
+      const { next, result } = checkWindow(globalState, global, current);
 
-      return { allowed: true, retryAfterSeconds: 0 };
+      if (!result.allowed) {
+        return result;
+      }
+
+      globalState = next;
     }
 
-    if (state.count >= max) {
-      return {
-        allowed: false,
-        retryAfterSeconds: Math.max(1, Math.ceil((state.resetAt - current) / 1000)),
-      };
+    const { next, result } = checkWindow(buckets.get(key), { max, windowMs }, current);
+
+    if (!result.allowed) {
+      return result;
     }
 
-    buckets.set(key, { count: state.count + 1, resetAt: state.resetAt });
+    evictOldestIfOverCapacity(key);
+    buckets.set(key, next);
 
-    return { allowed: true, retryAfterSeconds: 0 };
+    return result;
   }
 
-  return { check };
+  return {
+    check,
+    //? テストから distinct key 数の上限遵守を検証できるようにする。
+    get bucketCount() {
+      return buckets.size;
+    },
+  };
 }

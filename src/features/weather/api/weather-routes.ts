@@ -2,7 +2,7 @@ import { Result } from "better-result";
 import { Elysia } from "elysia";
 
 import { WeatherService } from "~/features/weather/api/weather-service";
-import { GetWeatherInputSchema } from "~/features/weather/schemas/weather-schema";
+import { GetWeatherQuerySchema } from "~/features/weather/schemas/weather-schema";
 
 //? 内部の WeatherError メッセージをクライアントへ漏らさないための汎用メッセージ。
 const GENERIC_ERROR_MESSAGE = "操作に失敗しました。";
@@ -15,14 +15,14 @@ function errorResponse(error: Record<"message", string>) {
   return { message: GENERIC_ERROR_MESSAGE, ok: false as const };
 }
 
-export const weatherRoutes = new Elysia({ prefix: "/weather" }).post(
-  "/get",
-  async ({ body }) => {
-    const result = await WeatherService.get(body);
+export const weatherRoutes = new Elysia({ prefix: "/weather" }).get(
+  "/",
+  async ({ query }) => {
+    const result = await WeatherService.get(query);
 
     return Result.isError(result)
       ? errorResponse(result.error)
       : { ok: true as const, report: result.value };
   },
-  { body: GetWeatherInputSchema },
+  { query: GetWeatherQuerySchema },
 );

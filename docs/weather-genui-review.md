@@ -54,6 +54,7 @@
 `weather-widget.tsx:97-101` の onChange はローカル state 更新のみ。コード内コメント「Phase 2 will wire this to re-send a chat prompt for the picked date」が残置。Phase 2 の他項目は実装済みなのに本項のみ未了。表示データは props 固定のため日付チップの表示しか変わらない。
 
 **5. [MEDIUM] §10 エラー UI の一部未実装**
+
 - 天気ウィジェットの `ok:false` エラー状態カードなし（widget props にエラー系フィールドなし）。
 - `useChat` エラーのリトライボタンなし（`chat.tsx:79-81`・パネルともメッセージ表示のみ。パネルは「順序提案」再押下で代替可）。
 
@@ -119,10 +120,10 @@ geocoding/forecast レスポンスを `as` キャストのみで使用し、geoc
 
 ## サマリ
 
-| 軸 | 件数 | 最重要 |
-| --- | --- | --- |
-| Standards | 違反 2 + スメル 6 + React 5 | weather→chat/tasks の feature 間 import 違反（tasks⇄weather 循環） |
-| Spec | HIGH 3 / MEDIUM 4 / LOW 2 | §8.5 現在日付のシステムプロンプト埋め込み欠落（日付解決が原理的に不安定） |
-| Security | MEDIUM 2 / LOW 2（CRITICAL/HIGH なし） | `orderedIds` 上限なし（1 行修正で DoS 面を閉じられる） |
+| 軸        | 件数                                   | 最重要                                                                    |
+| --------- | -------------------------------------- | ------------------------------------------------------------------------- |
+| Standards | 違反 2 + スメル 6 + React 5            | weather→chat/tasks の feature 間 import 違反（tasks⇄weather 循環）        |
+| Spec      | HIGH 3 / MEDIUM 4 / LOW 2              | §8.5 現在日付のシステムプロンプト埋め込み欠落（日付解決が原理的に不安定） |
+| Security  | MEDIUM 2 / LOW 2（CRITICAL/HIGH なし） | `orderedIds` 上限なし（1 行修正で DoS 面を閉じられる）                    |
 
 軸間の優先順位付けは意図的にしていない（各軸独立レビューの原則）。ただし相互関連として: Standards-1（配置違反）を直すと Standards-3（重複コード）が同時に解消し、Spec-4（DatePicker 未配線）を実装すると Standards-6/9（投機的 UI・stale state）の判断が変わる。

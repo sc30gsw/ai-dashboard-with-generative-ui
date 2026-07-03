@@ -51,3 +51,21 @@
 ## 次に必要なアクション（このセッションの続き）
 
 - ユーザーから「phase 1 実行して」等の指示を受けたら、該当 `workflows/phase-N-*.md` を読み、`Workflow` ツールの script に翻訳して起動する。
+
+## Phase 1〜3 完了・コミット済み（2026-07-03, commit `5d91e40`）
+
+3 phase とも実装 → 敵対的レビュー → 修正 → 再検証のループを最低 1 回ずつ回してから完了。学びを追記:
+
+- **Workflow 実行前の recon は必須**: ルールドキュメントの「target convention」と実コードの実装が食い違うことがある（例: `tools/defs/` + `adapters/` に分かれる想定だったが実際は `tools/*.ts` が単一ファイルでツール定義兼 Web MCP 実行を兼ねる）。agent プロンプトに実ファイルパス・実パターンを埋め込む前に必ず自分で数ファイル読むこと。
+- **Zod の Date 型は JSON Schema 化できない**: `z.coerce.date()` を Web MCP/AI SDK の tool inputSchema に使うと `z.toJSONSchema()` が例外を投げ、**その1ツールだけでなく同じ関数内で登録される全ツールの登録が丸ごと止まる**（Phase 1 の実際の regression）。日付は `z.iso.date()`（文字列）で受け、DB 書き込み境界で `new Date()` 変換する。
+- **「every tool exposed」系のテストは静的フラグしか見ないことがある**: `taskTools` 配列の `exposeToWebMcp` フラグを見るテストは、実際に `navigator.modelContext` へ登録する hook（本 repo では `use-task-tools.ts`）が新ツールを手動列挙し忘れていても検出しない。レビュー時は「本当に呼び出せるか」を instrumented test で実証させること。
+- **同一ファイルへの複数 agent 同時編集はほぼ確実に衝突/手戻りを生む**: Phase 1 で `task-model.ts` を 3 agent が並行編集し、"merge conflict handling" の自己申告が必要になった。以降は fix-plan の Wave 分析のように、事前にファイル競合グラフを描いてから並列度を決める。
+- **`git checkout -- <dir>` のような一括 revert はガードで拒否されうる**: 意図しないフォーマット差分（`vp check --fix` の副作用）の後始末は、ユーザー自身の操作に委ねるか、個別ファイル単位で対応する。
+
+## fix-plan workflow（2026-07-03 grilling で追加）
+
+- `docs/weather-genui-review.md`（3 軸レビュー: Standards/Spec/Security、計 27 指摘）→ `docs/weather-genui-fix-plan.md`（Wave A〜G）→ `workflows/fix-plan.md`（単一 workflow spec）という流れ。
+- **今回は Phase 1〜3 と違い workflow を 1 本に集約**: Wave 間のファイル依存が密（`apply-reorder.ts` 等 8 ファイルが 2 つ以上の Wave にまたがる）ため、独立起動可能な複数ファイルに分ける前提が崩れた。分割単位は「ファイル競合グラフを描いて依存が薄いかどうか」で判断すること — 密なら 1 本のパイプライン、疎なら Phase 方式（複数ファイル）。
+- **大規模フェーズの合間はコミットでチェックポイントを切る**: 70+ ファイル未コミットのまま次の大改修に入るとレビューの固定点（HEAD）がずれる。ユーザーに確認の上 `5d91e40` で一度コミットした。
+- **pre-commit hook（react-doctor）は React Compiler 非対応構文を検出する**: `try` 文（catch のみ・finally 付き含む）はコンポーネント本体内で丸ごと非対応。`.catch()/.finally()` のような promise チェーンに書き換えて回避する。
+- **`.agents/skills/` と `.claude/skills/` は別ディレクトリ**（symlink ではない）。`.agents/` は git 管理下、`.claude/` は未追跡。ミラーリングの実体は未解明だが、loop-me のワークスペース（NOTES.md・workflows/）は両方に出現しうる。

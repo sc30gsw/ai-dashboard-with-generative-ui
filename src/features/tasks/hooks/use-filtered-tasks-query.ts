@@ -22,8 +22,21 @@ export function useFilteredTasksQuery(
 
 export function useAllTasksQuery(sortDirection: TaskSortDirection = "desc") {
   return useLiveSuspenseQuery(
-    (query) =>
-      query.from({ task: tasksCollection }).orderBy(({ task }) => task.createdAt, sortDirection),
+    (query) => {
+      const builder = query.from({ task: tasksCollection });
+
+      //? コレクション内のいずれかに sortOrder が設定されていれば、要求された sortDirection に
+      //? 関わらず sortOrder 優先（昇順・NULL は末尾）で並べる（サーバー側 orderFor() と同じ規約）。
+      const hasSortOrder = tasksCollection.toArray.some((task) => task.sortOrder != null);
+
+      if (hasSortOrder) {
+        return builder
+          .orderBy(({ task }) => task.sortOrder, { direction: "asc", nulls: "last" })
+          .orderBy(({ task }) => task.createdAt, "asc");
+      }
+
+      return builder.orderBy(({ task }) => task.createdAt, sortDirection);
+    },
     [sortDirection],
   );
 }

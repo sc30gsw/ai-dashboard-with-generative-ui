@@ -25,11 +25,7 @@ test("error branch returns a generic message, not the internal WeatherError mess
   getResult.current = Result.err({ message: INTERNAL_MESSAGE });
 
   const response = await weatherRoutes.handle(
-    new Request("http://localhost/weather/get", {
-      body: JSON.stringify({ city: "Tokyo", date: "2026-07-03" }),
-      headers: { "content-type": "application/json" },
-      method: "POST",
-    }),
+    new Request("http://localhost/weather?city=Tokyo&date=2026-07-03"),
   );
   const data = await response.json();
 
@@ -39,7 +35,7 @@ test("error branch returns a generic message, not the internal WeatherError mess
   expect(data.message).not.toContain("INTERNAL DETAIL");
 });
 
-test("success branch returns a 200 with the report for a valid city and date", async () => {
+test("success branch returns a 200 with the report for a valid city and date query", async () => {
   const { weatherRoutes } = await import("~/features/weather/api/weather-routes");
 
   const report = {
@@ -55,11 +51,7 @@ test("success branch returns a 200 with the report for a valid city and date", a
   getResult.current = Result.ok(report);
 
   const response = await weatherRoutes.handle(
-    new Request("http://localhost/weather/get", {
-      body: JSON.stringify({ city: "Tokyo", date: "2026-07-03" }),
-      headers: { "content-type": "application/json" },
-      method: "POST",
-    }),
+    new Request("http://localhost/weather?city=Tokyo&date=2026-07-03"),
   );
   const data = await response.json();
 
@@ -68,16 +60,34 @@ test("success branch returns a 200 with the report for a valid city and date", a
   expect(data.report).toEqual(report);
 });
 
-test("invalid body (missing date) fails Standard Schema validation", async () => {
+test("success branch coerces latitude/longitude query strings to numbers", async () => {
   const { weatherRoutes } = await import("~/features/weather/api/weather-routes");
 
+  const report = {
+    daily: [],
+    date: "2026-07-03",
+    locationLabel: "35.68,139.77",
+    precipitationProbability: 10,
+    summary: "晴れ",
+    tempMax: 30,
+    tempMin: 22,
+    weatherCode: 1,
+  };
+  getResult.current = Result.ok(report);
+
   const response = await weatherRoutes.handle(
-    new Request("http://localhost/weather/get", {
-      body: JSON.stringify({ city: "Tokyo" }),
-      headers: { "content-type": "application/json" },
-      method: "POST",
-    }),
+    new Request("http://localhost/weather?latitude=35.68&longitude=139.77&date=2026-07-03"),
   );
+  const data = await response.json();
+
+  expect(response.status).toBe(200);
+  expect(data.ok).toBe(true);
+});
+
+test("invalid query (missing date) fails Standard Schema validation", async () => {
+  const { weatherRoutes } = await import("~/features/weather/api/weather-routes");
+
+  const response = await weatherRoutes.handle(new Request("http://localhost/weather?city=Tokyo"));
 
   expect(response.status).toBeGreaterThanOrEqual(400);
 });

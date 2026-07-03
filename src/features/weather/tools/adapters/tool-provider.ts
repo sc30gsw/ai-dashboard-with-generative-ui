@@ -1,11 +1,6 @@
-import type { RendererProps } from "@openuidev/react-lang";
+import { getWeatherTool, type WeatherToolProviderMap } from "~/features/weather/tools/get-weather";
 
-import { getWeatherTool } from "~/features/weather/tools/get-weather";
-
-type WeatherToolProviderMap = Extract<
-  NonNullable<RendererProps["toolProvider"]>,
-  Record<string, unknown>
->;
+export type { WeatherToolProviderMap };
 
 //* OpenUI toolProvider アダプタ: read 専用ツール（get_weather）のみを公開。
 //* Query() の自動解決に使う。

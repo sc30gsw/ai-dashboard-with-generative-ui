@@ -14,7 +14,7 @@ export const reorderTasksTool = {
   outputSchema: ReorderTasksOutputSchema,
   run: async (args) => {
     const input = ReorderTasksSchema.parse(args);
-    const { data, error } = await edenClient().tasks.reorder.post(input);
+    const { data, error } = await edenClient().tasks.reorder.patch(input);
 
     if (error) {
       throw new Error(`reorder_tasks failed: ${String(error.status)}`);

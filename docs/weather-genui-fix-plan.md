@@ -6,18 +6,18 @@
 
 ## 0. 確定判断（grill 結果）
 
-| 論点 | 決定 |
-| --- | --- |
-| パネル配置違反（Standards-1） | `WeatherSuggestionPanel` を **`src/components/` へ抽出**（ルール明記の正規ルート）。両ページ設置は維持 |
-| Pie/Bar 乖離（Spec-7） | **PieChart 化**（コード修正。元要望に PieChart 明記） |
-| ルートメソッド乖離（Spec-8） | **仕様どおり GET /api/weather + PATCH /api/tasks/reorder に変更**（コード修正） |
-| widget 直接供給（Spec-9） | 現状追認 — **仕様書 §8.1 に追記**（Renderer+Query 経由で充足） |
-| Geolocation（Spec-3） | **仕様どおり実装**（useChat body → chat ルート Zod 検証 → get_weather 既定座標。プロンプト文字列埋め込みは廃止） |
-| DatePicker（Spec-4） | **配線する**（useTriggerAction ラウンドトリップ。ローカル state 削除で React-9 も解消） |
-| タイムゾーン | **クライアント TZ をリクエストで送る**（`timeZone` を body に追加）。未送信時の既定値は定数 `Asia/Tokyo` |
-| レート制限（Sec MED-1） | **グローバル総量上限＋バケット数上限を併設**（IP 別制限は現状維持） |
-| 裁量 3 項目 | 全部やる: 承認 UI タイトル列挙 / エラー UI 2 点 / パネル指定日 UI |
-| 機械的修正 11 件 | 全部やる |
+| 論点                          | 決定                                                                                                             |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| パネル配置違反（Standards-1） | `WeatherSuggestionPanel` を **`src/components/` へ抽出**（ルール明記の正規ルート）。両ページ設置は維持           |
+| Pie/Bar 乖離（Spec-7）        | **PieChart 化**（コード修正。元要望に PieChart 明記）                                                            |
+| ルートメソッド乖離（Spec-8）  | **仕様どおり GET /api/weather + PATCH /api/tasks/reorder に変更**（コード修正）                                  |
+| widget 直接供給（Spec-9）     | 現状追認 — **仕様書 §8.1 に追記**（Renderer+Query 経由で充足）                                                   |
+| Geolocation（Spec-3）         | **仕様どおり実装**（useChat body → chat ルート Zod 検証 → get_weather 既定座標。プロンプト文字列埋め込みは廃止） |
+| DatePicker（Spec-4）          | **配線する**（useTriggerAction ラウンドトリップ。ローカル state 削除で React-9 も解消）                          |
+| タイムゾーン                  | **クライアント TZ をリクエストで送る**（`timeZone` を body に追加）。未送信時の既定値は定数 `Asia/Tokyo`         |
+| レート制限（Sec MED-1）       | **グローバル総量上限＋バケット数上限を併設**（IP 別制限は現状維持）                                              |
+| 裁量 3 項目                   | 全部やる: 承認 UI タイトル列挙 / エラー UI 2 点 / パネル指定日 UI                                                |
+| 機械的修正 11 件              | 全部やる                                                                                                         |
 
 ---
 
@@ -57,10 +57,12 @@
    ```ts
    const ChatRequestSchema = z.object({
      messages: z.array(z.unknown()),
-     location: z.object({
-       latitude: z.number().min(-90).max(90),
-       longitude: z.number().min(-180).max(180),
-     }).optional(),
+     location: z
+       .object({
+         latitude: z.number().min(-90).max(90),
+         longitude: z.number().min(-180).max(180),
+       })
+       .optional(),
      timeZone: z.string().max(64).optional(),
    });
    ```
@@ -108,21 +110,21 @@
 
 ## レビュー指摘 → Wave 対応表
 
-| 指摘 | Wave | | 指摘 | Wave |
-| --- | --- | --- | --- | --- |
-| Standards-1 配置違反 | A | | Spec-1 現在日付 | C |
-| Standards-2 ルール同期 | G | | Spec-2 一覧ソート | E |
-| Standards-3 重複コード | A | | Spec-3 Geolocation | C |
-| Standards-4 型重複 | A | | Spec-4 DatePicker | D |
-| Standards-5 WMO 二重管理 | G | | Spec-5 エラー UI | D①+G② |
-| Standards-6 投機的 UI | D | | Spec-6 パネル指定日 | A |
-| Standards-7 脆いパース | G | | Spec-7 Pie 化 | G |
-| Standards-8 日付表現 | C | | Spec-8 GET/PATCH 化 | B |
-| React-9 stale state | D | | Spec-9 直接供給 | G（仕様書追記） |
-| React-10 streaming 中適用 | A | | Sec MED-1 レート制限 | F |
-| React-11 reject 未捕捉 | A | | Sec MED-2 orderedIds 上限 | F |
-| React-12 UTC/JST | C | | Sec LOW-1 レスポンス検証 | F |
-| React-13 startsWith | A | | Sec LOW-2 承認 UI 列挙 | A（Dialog）+F（カード） |
+| 指摘                      | Wave |     | 指摘                      | Wave                    |
+| ------------------------- | ---- | --- | ------------------------- | ----------------------- |
+| Standards-1 配置違反      | A    |     | Spec-1 現在日付           | C                       |
+| Standards-2 ルール同期    | G    |     | Spec-2 一覧ソート         | E                       |
+| Standards-3 重複コード    | A    |     | Spec-3 Geolocation        | C                       |
+| Standards-4 型重複        | A    |     | Spec-4 DatePicker         | D                       |
+| Standards-5 WMO 二重管理  | G    |     | Spec-5 エラー UI          | D①+G②                   |
+| Standards-6 投機的 UI     | D    |     | Spec-6 パネル指定日       | A                       |
+| Standards-7 脆いパース    | G    |     | Spec-7 Pie 化             | G                       |
+| Standards-8 日付表現      | C    |     | Spec-8 GET/PATCH 化       | B                       |
+| React-9 stale state       | D    |     | Spec-9 直接供給           | G（仕様書追記）         |
+| React-10 streaming 中適用 | A    |     | Sec MED-1 レート制限      | F                       |
+| React-11 reject 未捕捉    | A    |     | Sec MED-2 orderedIds 上限 | F                       |
+| React-12 UTC/JST          | C    |     | Sec LOW-1 レスポンス検証  | F                       |
+| React-13 startsWith       | A    |     | Sec LOW-2 承認 UI 列挙    | A（Dialog）+F（カード） |
 
 ## 残存する既知の別課題（本計画のスコープ外）
 

@@ -1,25 +1,21 @@
-import type { useWebMCP } from "@mcp-b/react-webmcp";
 import type { RendererProps } from "@openuidev/react-lang";
 
 import {
   GetWeatherInputSchema,
   WeatherReportSchema,
 } from "~/features/weather/schemas/weather-schema";
+import type { ToolDefinition } from "~/types/tool";
 
-type WeatherToolProviderMap = Extract<
+export type WeatherToolProviderMap = Extract<
   NonNullable<RendererProps["toolProvider"]>,
   Record<string, unknown>
 >;
 
-type WeatherTool = Pick<Parameters<typeof useWebMCP>[0], "description" | "name"> & {
-  additive: boolean;
-  destructive: boolean;
-  exposeToWebMcp: boolean;
-  inputSchema: typeof GetWeatherInputSchema;
-  mutates: boolean;
-  outputSchema: typeof WeatherReportSchema;
-  run: WeatherToolProviderMap[string];
-};
+type WeatherTool = ToolDefinition<
+  WeatherToolProviderMap[string],
+  typeof GetWeatherInputSchema,
+  typeof WeatherReportSchema
+>;
 
 export const getWeatherTool = {
   additive: false,
@@ -34,7 +30,7 @@ export const getWeatherTool = {
   run: async (args) => {
     const input = GetWeatherInputSchema.parse(args);
     const { edenClient } = await import("~/lib/eden");
-    const { data, error } = await edenClient().weather.get.post(input);
+    const { data, error } = await edenClient().weather.get({ query: input });
 
     if (error) {
       throw new Error(`get_weather failed: ${String(error.status)}`);

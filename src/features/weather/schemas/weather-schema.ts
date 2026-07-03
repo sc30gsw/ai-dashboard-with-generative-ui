@@ -4,27 +4,43 @@ function toDateOnlyString(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
+//? UTC/JST のズレ（React-12）を吸収するため、境界の前後1日分の余裕を持たせる。
+//? 厳密な予報ウィンドウの判定は WeatherService 側の forecast_failed（実際の Open-Meteo
+//? レスポンスの time 配列に対する範囲チェック）に委譲し、ここではおおまかな範囲だけを弾く。
+function isDateWithinForecastRange({ date }: Record<"date", string>) {
+  const minDate = toDateOnlyString(new Date(Date.now() - 24 * 60 * 60 * 1000));
+  const maxDate = toDateOnlyString(new Date(Date.now() + 8 * 24 * 60 * 60 * 1000));
+
+  return date >= minDate && date <= maxDate;
+}
+
+function dateRangeRefinement() {
+  return {
+    error: "日付は今日から7日先までの範囲で指定してください。",
+    path: ["date"],
+  };
+}
+
 export const GetWeatherInputSchema = z
   .object({
     city: z.string().trim().min(1).optional(),
-    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    date: z.iso.date(),
     latitude: z.number().min(-90).max(90).optional(),
     longitude: z.number().min(-180).max(180).optional(),
   })
-  .refine(
-    ({ date }) => {
-      const today = toDateOnlyString(new Date());
-      const maxDate = toDateOnlyString(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
-
-      return date >= today && date <= maxDate;
-    },
-    {
-      error: "日付は今日から7日先までの範囲で指定してください。",
-      path: ["date"],
-    },
-  );
+  .refine(isDateWithinForecastRange, dateRangeRefinement());
 
 export type GetWeatherInput = z.infer<typeof GetWeatherInputSchema>;
+
+//? クエリ文字列は常に string で届くため、number 系フィールドのみ coerce する。date/city はそのまま string。
+export const GetWeatherQuerySchema = z
+  .object({
+    city: z.string().trim().min(1).optional(),
+    date: z.iso.date(),
+    latitude: z.coerce.number().min(-90).max(90).optional(),
+    longitude: z.coerce.number().min(-180).max(180).optional(),
+  })
+  .refine(isDateWithinForecastRange, dateRangeRefinement());
 
 const DailyWeatherSchema = z.object({
   date: z.string(),

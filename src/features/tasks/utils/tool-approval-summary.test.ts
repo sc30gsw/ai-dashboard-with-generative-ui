@@ -32,6 +32,32 @@ test("bulk_update_tasks composes every active filter into the scope (R1)", () =>
   expect(summary).toContain("優先度 → low");
 });
 
+test("reorder_tasks surfaces the ordered task titles via the resolver (Sec LOW-2)", () => {
+  const titles: Record<string, string> = {
+    "task-1": "買い物に行く",
+    "task-2": "レポートを提出する",
+  };
+
+  const summary = summarizeToolInput(
+    "reorder_tasks",
+    { orderedIds: ["task-1", "task-2"] },
+    (id) => titles[id],
+  );
+
+  expect(summary).toContain("2件のタスク");
+  expect(summary).toContain("買い物に行く → レポートを提出する");
+});
+
+test("reorder_tasks falls back to the raw id when the title cannot be resolved (Sec LOW-2)", () => {
+  const summary = summarizeToolInput(
+    "reorder_tasks",
+    { orderedIds: ["task-1", "stale-id"] },
+    (id) => (id === "task-1" ? "買い物に行く" : undefined),
+  );
+
+  expect(summary).toContain("買い物に行く → stale-id");
+});
+
 test("bulk_update_tasks with confirmAll and no filter surfaces the full-board scope (N2)", () => {
   const summary = summarizeToolInput("bulk_update_tasks", {
     completed: true,

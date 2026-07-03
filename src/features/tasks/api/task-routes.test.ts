@@ -50,7 +50,7 @@ test("success branch returns the real tasks unchanged", async () => {
   expect(data.tasks).toEqual(tasks);
 });
 
-test("POST /tasks/reorder with a valid body returns ok:true", async () => {
+test("PATCH /tasks/reorder with a valid body returns ok:true", async () => {
   const { taskRoutes } = await import("~/features/tasks/api/task-routes");
 
   const tasks = [{ completed: false, id: "1", priority: "high", title: "t", sortOrder: 1 }];
@@ -60,7 +60,7 @@ test("POST /tasks/reorder with a valid body returns ok:true", async () => {
     new Request("http://localhost/tasks/reorder", {
       body: JSON.stringify({ orderedIds: ["1"] }),
       headers: { "Content-Type": "application/json" },
-      method: "POST",
+      method: "PATCH",
     }),
   );
   const data = await response.json();
@@ -69,14 +69,14 @@ test("POST /tasks/reorder with a valid body returns ok:true", async () => {
   expect(data.tasks).toEqual(tasks);
 });
 
-test("POST /tasks/reorder with an empty orderedIds fails validation", async () => {
+test("PATCH /tasks/reorder with an empty orderedIds fails validation", async () => {
   const { taskRoutes } = await import("~/features/tasks/api/task-routes");
 
   const response = await taskRoutes.handle(
     new Request("http://localhost/tasks/reorder", {
       body: JSON.stringify({ orderedIds: [] }),
       headers: { "Content-Type": "application/json" },
-      method: "POST",
+      method: "PATCH",
     }),
   );
 

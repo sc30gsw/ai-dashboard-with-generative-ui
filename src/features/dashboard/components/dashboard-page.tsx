@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Suspense, lazy } from "react";
 import { countBy, partition, take } from "remeda";
 
+import { WeatherSuggestionPanel } from "~/components/weather-suggestion-panel";
 import {
   aggregateCompletionByPriority,
   aggregateTasksByDay,
@@ -13,28 +14,34 @@ import { TASK_PRIORITIES, type TaskPriority } from "~/features/tasks/api/task-mo
 import { PriorityChip } from "~/features/tasks/components/priority-chip";
 import { TaskQuickAdd } from "~/features/tasks/components/task-quick-add";
 import { useAllTasksQuery } from "~/features/tasks/hooks/use-filtered-tasks-query";
-import { WeatherSuggestionPanel } from "~/features/weather/components/weather-suggestion-panel";
 
 type PriorityChartDatum = {
   count: number;
   priority: TaskPriority;
 };
 
+//? PriorityChip の色分け（high=danger/medium=warning/low=default）に沿った、視認しやすい3色。
+const PRIORITY_CHART_COLORS = {
+  high: "#ef4444",
+  low: "#94a3b8",
+  medium: "#f59e0b",
+} as const satisfies Record<TaskPriority, string>;
+
 const PriorityDistributionChart = lazy(async () => {
-  const { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } =
-    await import("recharts");
+  const { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } = await import("recharts");
 
   return {
     default: function PriorityDistributionChart({ data }: Record<"data", PriorityChartDatum[]>) {
       return (
         <ResponsiveContainer height="100%" width="100%">
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="priority" />
-            <YAxis allowDecimals={false} />
+          <PieChart>
+            <Pie data={data} dataKey="count" innerRadius="55%" nameKey="priority" outerRadius="80%">
+              {data.map((datum) => (
+                <Cell fill={PRIORITY_CHART_COLORS[datum.priority]} key={datum.priority} />
+              ))}
+            </Pie>
             <Tooltip />
-            <Bar dataKey="count" fill="var(--accent)" radius={[4, 4, 0, 0]} />
-          </BarChart>
+          </PieChart>
         </ResponsiveContainer>
       );
     },

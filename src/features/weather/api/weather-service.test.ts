@@ -77,6 +77,52 @@ test("returns geocoding_failed error when the geocoding request fails", async ()
   }
 });
 
+test("returns geocoding_failed error when the geocoding response has an unexpected shape", async () => {
+  const fetchMock = vi.mocked(fetch);
+  fetchMock.mockResolvedValueOnce(
+    jsonResponse({
+      results: [{ latitude: "not-a-number", longitude: 139.6917, name: "Tokyo" }],
+    }),
+  );
+
+  const result = await WeatherService.get({ city: "Tokyo", date: "2026-07-03" });
+
+  expect(Result.isError(result)).toBe(true);
+
+  if (Result.isError(result)) {
+    expect(result.error.reason).toBe("geocoding_failed");
+  }
+});
+
+test("returns forecast_failed error when the forecast response has an unexpected shape", async () => {
+  const fetchMock = vi.mocked(fetch);
+  fetchMock
+    .mockResolvedValueOnce(
+      jsonResponse({
+        results: [{ latitude: 35.6895, longitude: 139.6917, name: "Tokyo" }],
+      }),
+    )
+    .mockResolvedValueOnce(
+      jsonResponse({
+        daily: {
+          precipitation_probability_max: [10],
+          temperature_2m_max: [30],
+          temperature_2m_min: [22],
+          time: ["2026-07-03"],
+          weather_code: ["not-a-number"],
+        },
+      }),
+    );
+
+  const result = await WeatherService.get({ city: "Tokyo", date: "2026-07-03" });
+
+  expect(Result.isError(result)).toBe(true);
+
+  if (Result.isError(result)) {
+    expect(result.error.reason).toBe("forecast_failed");
+  }
+});
+
 test("returns forecast_failed error when the requested date is outside the forecast range", async () => {
   const fetchMock = vi.mocked(fetch);
   fetchMock

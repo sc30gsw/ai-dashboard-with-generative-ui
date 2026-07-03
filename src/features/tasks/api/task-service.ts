@@ -29,7 +29,7 @@ const priorityRank = sql<number>`case ${tasks.priority}
   )}
 end`;
 
-function orderFor(input: ListTasksInput) {
+function orderFor(input: ListTasksInput, hasSortOrder: boolean) {
   const direction = input.sortDirection === "desc" ? desc : asc;
 
   if (input.sortBy === "priority") {
@@ -40,15 +40,15 @@ function orderFor(input: ListTasksInput) {
     return direction(tasks.title);
   }
 
-  //? sortBy: "createdAt" かつ明示的に desc が指定された場合は sortOrder を無視し、
-  //? 純粋な createdAt desc（新しい順）で並べる。
-  if (input.sortDirection === "desc") {
-    return desc(tasks.createdAt);
+  //? sortBy: "createdAt" の場合、結果集合内のいずれかに sortOrder が設定されていれば、
+  //? 要求された sortDirection に関わらず sortOrder 優先（昇順・NULL は末尾）で並べる。
+  //? 並べ替え操作が行われた意図を尊重する。createdAt は list() 側の第2キーで tie-break する。
+  if (hasSortOrder) {
+    return sql`${tasks.sortOrder} IS NULL, ${tasks.sortOrder} ASC`;
   }
 
-  //? デフォルト（createdAt/asc）のみ sortOrder 優先。未設定(NULL)のタスクは末尾に回す。
-  //? createdAt は list() 側の第2キーで tie-break する。
-  return sql`${tasks.sortOrder} IS NULL, ${tasks.sortOrder} ASC`;
+  //? sortOrder が誰にも設定されていなければ、従来通り createdAt を要求された方向で並べる。
+  return direction(tasks.createdAt);
 }
 
 function titleLikeCondition(term: string) {
@@ -209,7 +209,7 @@ export abstract class TaskService {
   static list(input: ListTasksInput) {
     return Result.tryPromise({
       catch: (cause) => new TaskError({ cause, message: "Failed to list tasks" }),
-      try: () => {
+      try: async () => {
         const filters = compactFilters([
           input.status === "active" ? eq(tasks.completed, false) : undefined,
           input.status === "completed" ? eq(tasks.completed, true) : undefined,
@@ -217,11 +217,22 @@ export abstract class TaskService {
           titleSearchFilter(input.search, input.searchTerms),
         ]);
 
+        const whereClause = filters.length ? and(...filters) : undefined;
+
+        //? 「現在の結果集合」（同じフィルタ条件）内に sortOrder が1件でも設定されているかを
+        //? 事前カウントし、orderFor() の分岐に使う（並べ替え操作の意図を優先するため）。
+        const [sortOrderCount] = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(tasks)
+          .where(and(...compactFilters([...filters, sql`${tasks.sortOrder} IS NOT NULL`])));
+
+        const hasSortOrder = Number(sortOrderCount?.count ?? 0) > 0;
+
         return db
           .select()
           .from(tasks)
-          .where(filters.length ? and(...filters) : undefined)
-          .orderBy(orderFor(input), asc(tasks.createdAt));
+          .where(whereClause)
+          .orderBy(orderFor(input, hasSortOrder), asc(tasks.createdAt));
       },
     });
   }

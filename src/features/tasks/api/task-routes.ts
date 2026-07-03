@@ -133,7 +133,7 @@ export const taskRoutes = new Elysia({ prefix: "/tasks" })
     },
     { body: DeleteAllTasksSchema },
   )
-  .post(
+  .patch(
     "/reorder",
     async ({ body }) => {
       const result = await TaskService.reorder(body);

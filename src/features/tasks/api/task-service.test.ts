@@ -180,11 +180,12 @@ test("list() with default sortBy orders by sortOrder ascending, nulls last, tie-
   }
 });
 
-test("list() with sortBy:createdAt and sortDirection:desc orders by createdAt descending, ignoring sortOrder", async () => {
+test("list() with sortBy:createdAt and sortDirection:desc still prioritizes sortOrder when any task has one set (overrides requested direction)", async () => {
   const { TaskService } = await import("~/features/tasks/api/task-service");
 
-  //? sortOrder が createdAt の並びと矛盾するデータを用意し、desc 指定時は sortOrder を無視して
-  //? createdAt の新しい順に並ぶことを検証する。
+  //? sortOrder が createdAt の並びと矛盾するデータを用意する。以前は desc 指定時に sortOrder を
+  //? 無視していたが、現在の決定では sortOrder が1件でもあれば要求された方向に関わらず
+  //? sortOrder 優先（昇順・NULL は末尾）で並ぶ（並べ替え操作の意図を尊重するため）。
   const db = makeDb();
   testDb.current = db;
 
@@ -219,9 +220,38 @@ test("list() with sortBy:createdAt and sortDirection:desc orders by createdAt de
   if (Result.isOk(result)) {
     expect(result.value.map((task) => task.id)).toEqual([
       "new-low-order",
-      "mid-no-order",
       "old-high-order",
+      "mid-no-order",
     ]);
+  }
+});
+
+test("list() with sortBy:createdAt and sortDirection:desc falls back to createdAt descending when NO task has sortOrder set", async () => {
+  const { TaskService } = await import("~/features/tasks/api/task-service");
+
+  //? どのタスクにも sortOrder が設定されていない場合は、従来通り要求された方向
+  //? （createdAt 降順）で並ぶことを検証する。
+  const db = makeDb();
+  testDb.current = db;
+
+  await createTasksTable(db);
+
+  await db.insert(tasks).values([
+    { id: "early", createdAt: new Date(1_000), priority: "medium", title: "a" },
+    { id: "mid", createdAt: new Date(3_000), priority: "medium", title: "b" },
+    { id: "late", createdAt: new Date(5_000), priority: "medium", title: "c" },
+  ]);
+
+  const result = await TaskService.list({
+    sortBy: "createdAt",
+    sortDirection: "desc",
+    status: "all",
+  });
+
+  expect(Result.isOk(result)).toBe(true);
+
+  if (Result.isOk(result)) {
+    expect(result.value.map((task) => task.id)).toEqual(["late", "mid", "early"]);
   }
 });
 

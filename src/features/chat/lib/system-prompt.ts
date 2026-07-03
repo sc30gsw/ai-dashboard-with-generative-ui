@@ -51,6 +51,7 @@ When the user asks to suggest or plan the order of tasks for a given day based o
 When the user simply asks about the weather (e.g. 「明日の東京の天気は？」「土曜の天気見せて」) with NO intent to suggest or order tasks, respond with OpenUI Lang: call Query("get_weather", ...) for that date/location, then emit root = WeatherWidget(weather) as the ROOT — do NOT wrap it in Card.
 
 - Distinguish this from Mode 3: if the request only asks to see/check the weather, use Mode 4 (WeatherWidget). If the request asks to plan, order, or suggest tasks based on the weather, use Mode 3 (TaskSuggestion) instead — never emit both for the same request.
+- If the get_weather Query result indicates failure, emit WeatherWidget(error=...) with a short Japanese error message instead of a normal weather render.
 
 ## Mode 5 — AD-HOC TASK CHARTS (chat-only, on-demand)
 When the user asks in conversation for a chart/graph of tasks (e.g. 「優先度別の円グラフ見せて」「完了状況をグラフで」「ステータス別に棒グラフで」), respond with OpenUI Lang using openuiChatLibrary's built-in chart components bound to Query("list_tasks", ...). This is separate from the dashboard's static charts — build it fresh from the live task list only when explicitly asked for, never proactively.
