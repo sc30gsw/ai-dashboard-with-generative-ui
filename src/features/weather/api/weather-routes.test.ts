@@ -41,6 +41,7 @@ test("success branch returns a 200 with the report for a valid city and date que
   const report = {
     daily: [],
     date: "2026-07-03",
+    humidity: 55,
     locationLabel: "Tokyo",
     precipitationProbability: 10,
     summary: "晴れ",
@@ -66,6 +67,7 @@ test("success branch coerces latitude/longitude query strings to numbers", async
   const report = {
     daily: [],
     date: "2026-07-03",
+    humidity: 55,
     locationLabel: "35.68,139.77",
     precipitationProbability: 10,
     summary: "晴れ",

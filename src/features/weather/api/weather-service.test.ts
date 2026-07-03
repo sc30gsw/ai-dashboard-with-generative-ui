@@ -40,6 +40,7 @@ test("returns a weather report for a valid city and date", async () => {
       jsonResponse({
         daily: {
           precipitation_probability_max: [10, 20],
+          relative_humidity_2m_mean: [55, 60],
           temperature_2m_max: [30, 31],
           temperature_2m_min: [22, 23],
           time: ["2026-07-03", "2026-07-04"],
@@ -60,7 +61,71 @@ test("returns a weather report for a valid city and date", async () => {
     expect(result.value.tempMax).toBe(30);
     expect(result.value.tempMin).toBe(22);
     expect(result.value.precipitationProbability).toBe(10);
+    expect(result.value.humidity).toBe(55);
     expect(result.value.daily).toHaveLength(2);
+    expect(result.value.daily[0]?.humidity).toBe(55);
+    expect(result.value.daily[1]?.humidity).toBe(60);
+  }
+});
+
+test("coordinates-only input resolves a human-readable label via reverse geocoding", async () => {
+  const fetchMock = vi.mocked(fetch);
+  fetchMock
+    .mockResolvedValueOnce(
+      //? 実 API（localityLanguage=ja）は日本の座標で city=都道府県 / locality=市区 を返す。
+      jsonResponse({ city: "東京都", locality: "渋谷区", principalSubdivision: "東京都" }),
+    )
+    .mockResolvedValueOnce(
+      jsonResponse({
+        daily: {
+          precipitation_probability_max: [10],
+          relative_humidity_2m_mean: [55],
+          temperature_2m_max: [30],
+          temperature_2m_min: [22],
+          time: ["2026-07-03"],
+          weather_code: [0],
+        },
+      }),
+    );
+
+  const result = await WeatherService.get({
+    date: "2026-07-03",
+    latitude: 35.6595,
+    longitude: 139.7005,
+  });
+
+  expect(Result.isOk(result)).toBe(true);
+
+  if (Result.isOk(result)) {
+    expect(result.value.locationLabel).toBe("東京都渋谷区");
+  }
+});
+
+test("coordinates-only input falls back to a coordinate label when reverse geocoding fails", async () => {
+  const fetchMock = vi.mocked(fetch);
+  fetchMock.mockResolvedValueOnce(jsonResponse({}, false)).mockResolvedValueOnce(
+    jsonResponse({
+      daily: {
+        precipitation_probability_max: [10],
+        relative_humidity_2m_mean: [55],
+        temperature_2m_max: [30],
+        temperature_2m_min: [22],
+        time: ["2026-07-03"],
+        weather_code: [0],
+      },
+    }),
+  );
+
+  const result = await WeatherService.get({
+    date: "2026-07-03",
+    latitude: 35.6595,
+    longitude: 139.7005,
+  });
+
+  expect(Result.isOk(result)).toBe(true);
+
+  if (Result.isOk(result)) {
+    expect(result.value.locationLabel).toBe("35.6595, 139.7005");
   }
 });
 
@@ -106,6 +171,7 @@ test("returns forecast_failed error when the forecast response has an unexpected
       jsonResponse({
         daily: {
           precipitation_probability_max: [10],
+          relative_humidity_2m_mean: [55],
           temperature_2m_max: [30],
           temperature_2m_min: [22],
           time: ["2026-07-03"],
@@ -135,6 +201,7 @@ test("returns forecast_failed error when the requested date is outside the forec
       jsonResponse({
         daily: {
           precipitation_probability_max: [10],
+          relative_humidity_2m_mean: [55],
           temperature_2m_max: [30],
           temperature_2m_min: [22],
           time: ["2026-07-03"],

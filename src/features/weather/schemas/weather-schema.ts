@@ -37,8 +37,20 @@ export const GetWeatherQuerySchema = z
   .object({
     city: z.string().trim().min(1).optional(),
     date: z.iso.date(),
-    latitude: z.coerce.number().min(-90).max(90).optional(),
-    longitude: z.coerce.number().min(-180).max(180).optional(),
+    latitude: z
+      .string()
+      .trim()
+      .min(1)
+      .transform(Number)
+      .pipe(z.number().min(-90).max(90))
+      .optional(),
+    longitude: z
+      .string()
+      .trim()
+      .min(1)
+      .transform(Number)
+      .pipe(z.number().min(-180).max(180))
+      .optional(),
   })
   .refine(isDateWithinForecastRange, dateRangeRefinement());
 
@@ -53,10 +65,14 @@ const DailyWeatherSchema = z.object({
 });
 
 export const WeatherReportSchema = z.object({
-  daily: z.array(DailyWeatherSchema).max(7),
+  daily: z.array(DailyWeatherSchema).max(8),
   date: z.string(),
   humidity: z.number().min(0).max(100).optional(),
+  //? 地図表示用の解決済み座標。city 指定時はジオコーディング結果、座標指定時は入力値。
+  //? モデルに座標を emit させず、サーバーが解決した実座標を widget まで届ける。
+  latitude: z.number().min(-90).max(90),
   locationLabel: z.string(),
+  longitude: z.number().min(-180).max(180),
   precipitationProbability: z.number().min(0).max(100),
   summary: z.string(),
   tempMax: z.number(),
