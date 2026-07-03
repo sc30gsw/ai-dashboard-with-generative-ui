@@ -1,6 +1,7 @@
 import { countBy, partition, sortBy } from "remeda";
 
 import { TASK_PRIORITIES, type Task, type TaskPriority } from "~/features/tasks/api/task-model";
+import { APP_DEFAULT_TIMEZONE, dateKeyInTimeZone } from "~/lib/timezone";
 
 export type CompletionByPriorityDatum = {
   completed: number;
@@ -36,7 +37,7 @@ export function aggregateTasksByDay(
   const byDate = new Map<string, TasksByDayDatum>();
 
   for (const task of tasks) {
-    const date = task.createdAt.toISOString().slice(0, 10);
+    const date = dateKeyInTimeZone(task.createdAt, APP_DEFAULT_TIMEZONE);
     const existing = byDate.get(date) ?? { completed: 0, created: 0, date };
 
     byDate.set(date, {

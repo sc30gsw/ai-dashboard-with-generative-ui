@@ -31,10 +31,7 @@ function checkWindow(
   state: WindowState | undefined,
   limit: RateLimitConfig,
   current: number,
-): Record<"next" | "result", WindowState | RateLimitResult> & {
-  next: WindowState;
-  result: RateLimitResult;
-} {
+): { next: WindowState; result: RateLimitResult } {
   //* ウィンドウ未開始、または期限切れなら新しいウィンドウを開始する（固定ウィンドウ）。
   if (!state || current >= state.resetAt) {
     return {
@@ -92,28 +89,31 @@ export function createRateLimiter({
   function check(key: string): RateLimitResult {
     const current = now();
 
-    //* per-key チェックより先にグローバル集約チェックを行う。x-forwarded-for のような
-    //* スプーフ可能なキーを回転させて per-key 制限を回避しても、総量に上限がかかる。
-    if (global) {
-      const { next, result } = checkWindow(globalState, global, current);
+    //* グローバル集約と per-key の両ウィンドウを先に判定し、両方許可のときだけ同時にコミットする。
+    //* グローバル側だけ先にコミットすると、per-key で拒否されるリクエストが共有ウィンドウを
+    //* 消費し続け、単一 IP の連打だけでグローバル枠が枯渇して正規ユーザーまで 429 になる。
+    //* x-forwarded-for のようなスプーフ可能なキーの回転に対する総量上限（グローバル）と、
+    //* 単一キーの連打に対する per-key 上限が、互いの枠を奪わずに独立して機能する。
+    const globalCheck = global ? checkWindow(globalState, global, current) : undefined;
 
-      if (!result.allowed) {
-        return result;
-      }
-
-      globalState = next;
+    if (globalCheck && !globalCheck.result.allowed) {
+      return globalCheck.result;
     }
 
-    const { next, result } = checkWindow(buckets.get(key), { max, windowMs }, current);
+    const keyCheck = checkWindow(buckets.get(key), { max, windowMs }, current);
 
-    if (!result.allowed) {
-      return result;
+    if (!keyCheck.result.allowed) {
+      return keyCheck.result;
+    }
+
+    if (globalCheck) {
+      globalState = globalCheck.next;
     }
 
     evictOldestIfOverCapacity(key);
-    buckets.set(key, next);
+    buckets.set(key, keyCheck.next);
 
-    return result;
+    return keyCheck.result;
   }
 
   return {

@@ -39,7 +39,7 @@ test("calls the reorder endpoint with orderedIds and refetches on success", asyn
     error: null,
   });
 
-  const { applyReorderSuggestion } = await import("~/lib/apply-reorder");
+  const { applyReorderSuggestion } = await import("~/features/tasks/utils/apply-reorder");
 
   await applyReorderSuggestion(["t2", "t1"]);
 
@@ -55,7 +55,7 @@ test("shows a danger toast and does not refetch on transport error", async () =>
     error: { status: 500 },
   });
 
-  const { applyReorderSuggestion } = await import("~/lib/apply-reorder");
+  const { applyReorderSuggestion } = await import("~/features/tasks/utils/apply-reorder");
 
   await applyReorderSuggestion(["t1"]);
 
@@ -69,7 +69,7 @@ test("shows a danger toast and does not refetch when the server reports failure"
     error: null,
   });
 
-  const { applyReorderSuggestion } = await import("~/lib/apply-reorder");
+  const { applyReorderSuggestion } = await import("~/features/tasks/utils/apply-reorder");
 
   await applyReorderSuggestion(["t1"]);
 
@@ -84,7 +84,7 @@ test("shows a danger toast when refetching the tasks collection rejects", async 
   });
   refetchTasksCollectionMock.mockRejectedValueOnce(new Error("network down"));
 
-  const { applyReorderSuggestion } = await import("~/lib/apply-reorder");
+  const { applyReorderSuggestion } = await import("~/features/tasks/utils/apply-reorder");
 
   await applyReorderSuggestion(["t1"]);
 

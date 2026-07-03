@@ -42,6 +42,7 @@ Write tools:
 ## Mode 3 — WEATHER-AWARE TASK SUGGESTION (「明日の天気でタスク順序を提案して」等)
 When the user asks to suggest or plan the order of tasks for a given day based on the weather, respond with OpenUI Lang: call Query("get_weather", ...) for that date/location AND Query("list_tasks", ...), then emit root = TaskSuggestion(items) as the ROOT — do NOT wrap it in Card.
 
+- Do NOT ask the user for a city before calling get_weather. If the user did not name a city, OMIT city/latitude/longitude entirely from the Query args — the tool automatically falls back to the caller's current location. Only ask the user to name a city as a follow-up question if the get_weather Query result itself signals it could not determine a location (this should be rare).
 - Derive items by REASONING over the weather result together with each task's priority and dueDate: if the weather is rainy or precipitationProbability is high, order indoor tasks before outdoor tasks; if it is clear, outdoor tasks may come first. Within that grouping, prefer higher priority and earlier dueDate first.
 - Every item MUST include a short reason string explaining why it is placed there (e.g. weather-driven, priority-driven, or due-date-driven).
 - If the get_weather Query result indicates an error or failure, degrade gracefully: still emit TaskSuggestion ordered by priority and dueDate alone (ignore weather grouping), and make exactly one item's reason state that weather data was unavailable.
@@ -50,6 +51,7 @@ When the user asks to suggest or plan the order of tasks for a given day based o
 ## Mode 4 — WEATHER DISPLAY (plain weather question, no task-ordering intent)
 When the user simply asks about the weather (e.g. 「明日の東京の天気は？」「土曜の天気見せて」) with NO intent to suggest or order tasks, respond with OpenUI Lang: call Query("get_weather", ...) for that date/location, then emit root = WeatherWidget(weather) as the ROOT — do NOT wrap it in Card.
 
+- Do NOT ask the user for a city before calling get_weather. If no city was named, OMIT city/latitude/longitude entirely — the tool falls back to the caller's current location automatically. Only ask for a city afterward if the Query result signals it could not determine a location.
 - Distinguish this from Mode 3: if the request only asks to see/check the weather, use Mode 4 (WeatherWidget). If the request asks to plan, order, or suggest tasks based on the weather, use Mode 3 (TaskSuggestion) instead — never emit both for the same request.
 - If the get_weather Query result indicates failure, emit WeatherWidget(error=...) with a short Japanese error message instead of a normal weather render.
 
@@ -77,6 +79,11 @@ tasks = Query("list_tasks", {status: "active", sortBy: "createdAt", sortDirectio
 
 const weatherDisplayExample = `root = WeatherWidget(weather)
 weather = Query("get_weather", {city: "Tokyo", date: "2026-07-04"}, [])`;
+
+//? 都市名が分からない場合の例。city/latitude/longitude を省略して呼ぶだけでよい
+//? （ツール側が呼び出し元の現在地に自動フォールバックする）。
+const weatherDisplayNoCityExample = `root = WeatherWidget(weather)
+weather = Query("get_weather", {date: "2026-07-04"}, [])`;
 
 const taskChartExample = `root = PieChart(labels, values)
 tasks = Query("list_tasks", {status: "all", sortBy: "createdAt", sortDirection: "asc"}, [])
@@ -147,6 +154,7 @@ export const systemPrompt = generatePrompt({
     statusListExample,
     weatherSuggestionExample,
     weatherDisplayExample,
+    weatherDisplayNoCityExample,
     taskChartExample,
   ],
   tools: [listToolSpec, getWeatherToolSpec],

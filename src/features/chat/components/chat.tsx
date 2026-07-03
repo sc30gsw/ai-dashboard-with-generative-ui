@@ -12,7 +12,7 @@ import { useAppForm } from "~/features/chat/hooks/form";
 import { CreateMessageSchema } from "~/features/chat/schemas/message-schema";
 import { canSendChatMessage, chatUiState } from "~/features/chat/utils/message-parts";
 import { refetchTasksCollection } from "~/features/tasks/collections/tasks-collection";
-import { getCurrentCoordinates } from "~/hooks/use-geolocation";
+import { getCurrentCoordinates } from "~/utils/geolocation";
 
 //? チャット送信のたびに現在地取得を試み、body の location/timeZone として渡す。
 //? get_weather ツールが city/座標なしで呼ばれた場合のデフォルト座標フォールバック（§6.1）に使う。

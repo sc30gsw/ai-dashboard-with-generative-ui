@@ -53,24 +53,32 @@ test("aggregateTasksByDay returns an empty array for empty input", () => {
   expect(aggregateTasksByDay([])).toEqual([]);
 });
 
-test("aggregateTasksByDay groups multiple same-day tasks and sorts multi-day results ascending", () => {
+test("aggregateTasksByDay buckets by the Asia/Tokyo calendar day (JST = UTC+9), grouping same-day tasks and sorting multi-day results ascending", () => {
   const tasks = [
+    // UTC 2026-07-02T23:00 + 9h = 2026-07-03T08:00 JST -> JST date 2026-07-03
     { completed: true, createdAt: new Date("2026-07-02T23:00:00.000Z") },
-    { completed: false, createdAt: new Date("2026-07-02T01:00:00.000Z") },
+    // UTC 2026-07-03T01:00 + 9h = 2026-07-03T10:00 JST -> JST date 2026-07-03
+    // (same JST day as above despite a different UTC calendar day -- this is the
+    // case naive UTC bucketing got wrong and this fix corrects.)
+    { completed: false, createdAt: new Date("2026-07-03T01:00:00.000Z") },
+    // UTC 2026-06-30T10:00 + 9h = 2026-06-30T19:00 JST -> JST date 2026-06-30
     { completed: false, createdAt: new Date("2026-06-30T10:00:00.000Z") },
+    // UTC 2026-07-01T05:00 + 9h = 2026-07-01T14:00 JST -> JST date 2026-07-01
     { completed: true, createdAt: new Date("2026-07-01T05:00:00.000Z") },
   ];
 
   expect(aggregateTasksByDay(tasks)).toEqual([
     { completed: 0, created: 1, date: "2026-06-30" },
     { completed: 1, created: 1, date: "2026-07-01" },
-    { completed: 1, created: 2, date: "2026-07-02" },
+    { completed: 1, created: 2, date: "2026-07-03" },
   ]);
 });
 
 test("aggregateTasksByDay reports completed:0 for a day with only incomplete tasks", () => {
   const tasks = [
+    // UTC 2026-07-03T00:00 + 9h = 2026-07-03T09:00 JST -> JST date 2026-07-03 (same as UTC date)
     { completed: false, createdAt: new Date("2026-07-03T00:00:00.000Z") },
+    // UTC 2026-07-03T12:00 + 9h = 2026-07-03T21:00 JST -> JST date 2026-07-03 (same as UTC date)
     { completed: false, createdAt: new Date("2026-07-03T12:00:00.000Z") },
   ];
 

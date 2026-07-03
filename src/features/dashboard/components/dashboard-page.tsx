@@ -27,67 +27,47 @@ const PRIORITY_CHART_COLORS = {
   medium: "#f59e0b",
 } as const satisfies Record<TaskPriority, string>;
 
+const STATUS_CHART_COLORS = {
+  completed: "#2563eb",
+  incomplete: "#cbd5e1",
+} as const satisfies Record<"completed" | "incomplete", string>;
+
+const ACTIVITY_CHART_COLORS = {
+  completed: "#0f766e",
+  created: "#2563eb",
+} as const satisfies Record<"completed" | "created", string>;
+
+const CHART_HEIGHT = 240;
+
 const PriorityDistributionChart = lazy(async () => {
-  const { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } = await import("recharts");
+  const { Cell, LabelList, Pie, PieChart, ResponsiveContainer, Tooltip } = await import("recharts");
 
   return {
     default: function PriorityDistributionChart({ data }: Record<"data", PriorityChartDatum[]>) {
       return (
-        <ResponsiveContainer height="100%" width="100%">
+        <ResponsiveContainer height={CHART_HEIGHT} width="100%">
           <PieChart>
-            <Pie data={data} dataKey="count" innerRadius="55%" nameKey="priority" outerRadius="80%">
+            <Pie
+              data={data}
+              dataKey="count"
+              innerRadius="52%"
+              nameKey="priority"
+              outerRadius="76%"
+              paddingAngle={2}
+            >
+              <LabelList
+                dataKey="count"
+                fill="#111827"
+                fontSize={12}
+                formatter={(value: number) => (value > 0 ? String(value) : "")}
+                position="outside"
+              />
               {data.map((datum) => (
                 <Cell fill={PRIORITY_CHART_COLORS[datum.priority]} key={datum.priority} />
               ))}
             </Pie>
             <Tooltip />
           </PieChart>
-        </ResponsiveContainer>
-      );
-    },
-  };
-});
-
-const CompletionByPriorityChart = lazy(async () => {
-  const { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } =
-    await import("recharts");
-
-  return {
-    default: function CompletionByPriorityChart({
-      data,
-    }: Record<"data", CompletionByPriorityDatum[]>) {
-      return (
-        <ResponsiveContainer height="100%" width="100%">
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="priority" />
-            <YAxis allowDecimals={false} />
-            <Tooltip />
-            <Bar dataKey="completed" fill="var(--accent)" radius={[4, 4, 0, 0]} stackId="status" />
-            <Bar dataKey="incomplete" fill="var(--muted)" radius={[4, 4, 0, 0]} stackId="status" />
-          </BarChart>
-        </ResponsiveContainer>
-      );
-    },
-  };
-});
-
-const DailyActivityChart = lazy(async () => {
-  const { Bar, ComposedChart, CartesianGrid, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } =
-    await import("recharts");
-
-  return {
-    default: function DailyActivityChart({ data }: Record<"data", TasksByDayDatum[]>) {
-      return (
-        <ResponsiveContainer height="100%" width="100%">
-          <ComposedChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
-            <YAxis allowDecimals={false} />
-            <Tooltip />
-            <Bar dataKey="created" fill="var(--accent)" radius={[4, 4, 0, 0]} />
-            <Line dataKey="completed" stroke="var(--muted)" type="monotone" />
-          </ComposedChart>
         </ResponsiveContainer>
       );
     },
@@ -107,6 +87,118 @@ function StatsCard({ label, value }: StatsCardProps) {
         <p className="mt-1 text-3xl font-semibold">{value}</p>
       </Card.Content>
     </Card>
+  );
+}
+
+function LegendItem({ color, label }: Record<"color" | "label", string>) {
+  return (
+    <span className="text-muted inline-flex items-center gap-1.5 text-xs">
+      <span className="size-2.5 rounded-sm" style={{ backgroundColor: color }} />
+      {label}
+    </span>
+  );
+}
+
+function EmptyChartState({ message }: Record<"message", string>) {
+  return (
+    <div className="border-separator bg-surface-secondary/40 text-muted flex min-h-40 items-center justify-center rounded-md border text-center text-sm">
+      {message}
+    </div>
+  );
+}
+
+function percent(value: number, max: number) {
+  if (max <= 0) {
+    return "0%";
+  }
+
+  return `${Math.max(4, Math.round((value / max) * 100))}%`;
+}
+
+function CompletionByPriorityBars({ data }: Record<"data", CompletionByPriorityDatum[]>) {
+  const max = Math.max(...data.map((datum) => datum.completed + datum.incomplete), 1);
+
+  return (
+    <div className="flex flex-col gap-4">
+      {data.map((datum) => {
+        const total = datum.completed + datum.incomplete;
+
+        return (
+          <div className="grid grid-cols-[5rem_1fr_4rem] items-center gap-3" key={datum.priority}>
+            <span className="text-sm font-medium capitalize">{datum.priority}</span>
+            <div
+              aria-label={`${datum.priority}: completed ${datum.completed}, open ${datum.incomplete}`}
+              className="bg-surface-secondary flex h-7 overflow-hidden rounded-md"
+            >
+              {datum.completed > 0 ? (
+                <div
+                  className="h-full"
+                  style={{
+                    backgroundColor: STATUS_CHART_COLORS.completed,
+                    width: percent(datum.completed, max),
+                  }}
+                />
+              ) : null}
+              {datum.incomplete > 0 ? (
+                <div
+                  className="h-full"
+                  style={{
+                    backgroundColor: STATUS_CHART_COLORS.incomplete,
+                    width: percent(datum.incomplete, max),
+                  }}
+                />
+              ) : null}
+            </div>
+            <span className="text-muted text-right text-sm">
+              {datum.completed}/{total}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function DailyActivityBars({ data }: Record<"data", TasksByDayDatum[]>) {
+  const max = Math.max(...data.map((datum) => datum.created), 1);
+
+  return (
+    <div className="flex flex-col gap-4">
+      {data.map((datum) => (
+        <div className="grid grid-cols-[6.5rem_1fr_4rem] items-center gap-3" key={datum.date}>
+          <span className="text-muted text-sm tabular-nums">{datum.date}</span>
+          <div className="flex flex-col gap-1.5">
+            <div
+              aria-label={`${datum.date}: created ${datum.created}`}
+              className="bg-surface-secondary h-5 overflow-hidden rounded-md"
+            >
+              <div
+                className="h-full"
+                style={{
+                  backgroundColor: ACTIVITY_CHART_COLORS.created,
+                  width: percent(datum.created, max),
+                }}
+              />
+            </div>
+            <div
+              aria-label={`${datum.date}: completed now ${datum.completed}`}
+              className="bg-surface-secondary h-2 overflow-hidden rounded-full"
+            >
+              {datum.completed > 0 ? (
+                <div
+                  className="h-full"
+                  style={{
+                    backgroundColor: ACTIVITY_CHART_COLORS.completed,
+                    width: percent(datum.completed, max),
+                  }}
+                />
+              ) : null}
+            </div>
+          </div>
+          <span className="text-muted text-right text-sm">{datum.created}件</span>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -131,6 +223,7 @@ export function DashboardPage() {
 
   const completionByPriorityData = aggregateCompletionByPriority(rows);
   const dailyActivityData = aggregateTasksByDay(rows);
+  const hasTasks = rows.length > 0;
 
   const recentTasks = take(rows, 5);
 
@@ -166,13 +259,28 @@ export function DashboardPage() {
           <Card.Header>
             <Card.Title>Priority distribution</Card.Title>
           </Card.Header>
-          <Card.Content className="h-72">
+          <Card.Content className="flex flex-col gap-3">
             <span className="sr-only">{priorityChartSummary}</span>
-            <Suspense fallback={<p className="text-muted text-sm">Loading chart...</p>}>
-              <div aria-hidden="true" className="h-full w-full">
-                <PriorityDistributionChart data={priorityChartData} />
-              </div>
-            </Suspense>
+            <div className="flex flex-wrap gap-3">
+              {priorityChartData.map((datum) => (
+                <LegendItem
+                  color={PRIORITY_CHART_COLORS[datum.priority]}
+                  key={datum.priority}
+                  label={`${datum.priority}: ${datum.count}`}
+                />
+              ))}
+            </div>
+            <div className="min-h-60">
+              {hasTasks ? (
+                <Suspense fallback={<p className="text-muted text-sm">Loading chart...</p>}>
+                  <div aria-hidden="true" className="h-full w-full">
+                    <PriorityDistributionChart data={priorityChartData} />
+                  </div>
+                </Suspense>
+              ) : (
+                <EmptyChartState message="まだタスクがありません。" />
+              )}
+            </div>
           </Card.Content>
         </Card>
 
@@ -191,13 +299,20 @@ export function DashboardPage() {
           <Card.Header>
             <Card.Title>Completion by priority</Card.Title>
           </Card.Header>
-          <Card.Content className="h-72">
+          <Card.Content className="flex flex-col gap-3">
             <span className="sr-only">{completionByPriorityChartSummary}</span>
-            <Suspense fallback={<p className="text-muted text-sm">Loading chart...</p>}>
-              <div aria-hidden="true" className="h-full w-full">
-                <CompletionByPriorityChart data={completionByPriorityData} />
-              </div>
-            </Suspense>
+            <div className="flex flex-wrap gap-3">
+              <LegendItem color={STATUS_CHART_COLORS.completed} label="Completed" />
+              <LegendItem color={STATUS_CHART_COLORS.incomplete} label="Open" />
+            </div>
+            <p className="text-muted text-xs">{completionByPriorityChartSummary}</p>
+            <div>
+              {hasTasks ? (
+                <CompletionByPriorityBars data={completionByPriorityData} />
+              ) : (
+                <EmptyChartState message="完了状況を集計するタスクがありません。" />
+              )}
+            </div>
           </Card.Content>
         </Card>
 
@@ -205,13 +320,22 @@ export function DashboardPage() {
           <Card.Header>
             <Card.Title>Daily activity</Card.Title>
           </Card.Header>
-          <Card.Content className="h-72">
+          <Card.Content className="flex flex-col gap-3">
             <span className="sr-only">{dailyActivityChartSummary}</span>
-            <Suspense fallback={<p className="text-muted text-sm">Loading chart...</p>}>
-              <div aria-hidden="true" className="h-full w-full">
-                <DailyActivityChart data={dailyActivityData} />
-              </div>
-            </Suspense>
+            <div className="flex flex-wrap gap-3">
+              <LegendItem color={ACTIVITY_CHART_COLORS.created} label="Created" />
+              <LegendItem color={ACTIVITY_CHART_COLORS.completed} label="Completed now" />
+            </div>
+            <p className="text-muted text-xs">
+              完了日は保存していないため、完了数は「その日に作成され、現在完了しているタスク」です。
+            </p>
+            <div>
+              {dailyActivityData.length > 0 ? (
+                <DailyActivityBars data={dailyActivityData} />
+              ) : (
+                <EmptyChartState message="日別に集計できるタスクがありません。" />
+              )}
+            </div>
           </Card.Content>
         </Card>
       </div>

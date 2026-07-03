@@ -80,6 +80,31 @@ test("rejects once the global aggregate cap is exceeded even when rotating the p
   expect(blocked?.retryAfterSeconds).toBeGreaterThan(0);
 });
 
+test("per-key-rejected requests do not consume global slots (single-IP flood must not starve other users)", () => {
+  const clock = fakeClock();
+  //? per-key は 2 まで、グローバルは 5 まで。攻撃者 1 キーが 10 回連打すると、
+  //? 許可されるのは 2 回だけで、残り 8 回は per-key 拒否。修正前はこの拒否リクエストも
+  //? グローバル枠を消費していたため（2 + 8 > 5）、後続の別キーがグローバル拒否されていた。
+  const limiter = createRateLimiter({
+    global: { max: 5, windowMs: 60_000 },
+    max: 2,
+    now: clock.now,
+    windowMs: 60_000,
+  });
+
+  const attackerResults = Array.from({ length: 10 }, () => limiter.check("attacker"));
+
+  expect(attackerResults.filter((r) => r.allowed)).toHaveLength(2);
+
+  //? グローバル残枠は 5 - 2 = 3。正規ユーザー 3 キーは全員許可されなければならない。
+  expect(limiter.check("victim-1").allowed).toBe(true);
+  expect(limiter.check("victim-2").allowed).toBe(true);
+  expect(limiter.check("victim-3").allowed).toBe(true);
+
+  //? 4 人目でグローバル上限 (5) に達し拒否される — グローバル枠自体は機能し続けている。
+  expect(limiter.check("victim-4").allowed).toBe(false);
+});
+
 test("caps the number of distinct keys tracked in the Map (bucket eviction)", () => {
   const clock = fakeClock();
   const limiter = createRateLimiter({

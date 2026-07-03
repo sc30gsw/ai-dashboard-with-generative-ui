@@ -24,6 +24,13 @@ export const TASK_TOOL_POLICY = {
 
 type TaskToolName = keyof typeof TASK_TOOL_POLICY;
 
+//? TaskTool["name"] は useWebMCP のオプション型由来で string に広がっているため、
+//? TASK_TOOL_POLICY のキー判定は型ガードで絞り込む（キャストや `?? true` のような
+//? 到達不能フォールバックに頼らない）。
+function isTaskToolName(name: string): name is TaskToolName {
+  return name in TASK_TOOL_POLICY;
+}
+
 export function isMutatingTool(name: TaskTool["name"]) {
-  return TASK_TOOL_POLICY[name as TaskToolName]?.mutates ?? true;
+  return isTaskToolName(name) && TASK_TOOL_POLICY[name].mutates;
 }

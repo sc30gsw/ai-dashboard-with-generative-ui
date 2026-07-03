@@ -80,13 +80,17 @@ function statusFilters(input: { status: ListTasksInput["status"] }) {
   ]);
 }
 
+function toDueDate(dueDate: string | undefined) {
+  return dueDate === undefined ? undefined : new Date(dueDate);
+}
+
 function taskUpdates(
   input: Pick<BulkUpdateTasksInput, "completed" | "dueDate" | "location" | "priority" | "title">,
 ) {
   return pickBy(
     {
       completed: input.completed,
-      dueDate: input.dueDate === undefined ? undefined : new Date(input.dueDate),
+      dueDate: toDueDate(input.dueDate),
       location: input.location,
       priority: input.priority,
       title: input.title,
@@ -102,10 +106,7 @@ export abstract class TaskService {
       try: async () => {
         const [task] = await db
           .insert(tasks)
-          .values({
-            ...input,
-            dueDate: input.dueDate === undefined ? undefined : new Date(input.dueDate),
-          })
+          .values({ ...input, dueDate: toDueDate(input.dueDate) })
           .returning();
 
         if (!task) {
@@ -123,12 +124,7 @@ export abstract class TaskService {
       try: async () => {
         const created = await db
           .insert(tasks)
-          .values(
-            inputs.map((input) => ({
-              ...input,
-              dueDate: input.dueDate === undefined ? undefined : new Date(input.dueDate),
-            })),
-          )
+          .values(inputs.map((input) => ({ ...input, dueDate: toDueDate(input.dueDate) })))
           .returning();
 
         return { addedCount: created.length, tasks: created };

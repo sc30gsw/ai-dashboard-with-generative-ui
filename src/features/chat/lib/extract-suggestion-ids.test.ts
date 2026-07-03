@@ -1,6 +1,6 @@
 import { expect, test } from "vite-plus/test";
 
-import { extractSuggestionOrderedIds } from "~/lib/extract-suggestion-ids";
+import { extractSuggestionOrderedIds } from "~/features/chat/lib/extract-suggestion-ids";
 
 test("returns an empty array when no TaskSuggestion node is present", () => {
   expect(extractSuggestionOrderedIds('root = TextContent("hello")')).toEqual([]);

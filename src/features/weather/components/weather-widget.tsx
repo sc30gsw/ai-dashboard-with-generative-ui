@@ -4,9 +4,11 @@ import {
   defineComponent,
   useTriggerAction,
 } from "@openuidev/react-lang";
+import { useState } from "react";
 import { z } from "zod";
 
 import { emojiForWeatherCode } from "~/features/weather/lib/wmo-codes";
+import { APP_DEFAULT_TIMEZONE, todayRangeInTimeZone } from "~/lib/timezone";
 
 const dailyWeatherPropsSchema = z.object({
   date: z.string().describe("ISO date (YYYY-MM-DD) for this forecast day"),
@@ -65,6 +67,11 @@ export const weatherWidget = defineComponent({
       weatherCode,
     } = props;
     const triggerAction = useTriggerAction();
+    //? マウント時の日付を一度だけ取得する（render のたびに算出すると React Compiler の
+    //? purity ルールに反するため、lazy initializer で一度だけ評価する）。
+    const [{ end: maxDate, start: minDate }] = useState(() =>
+      todayRangeInTimeZone(APP_DEFAULT_TIMEZONE),
+    );
 
     if (error) {
       return (
@@ -107,7 +114,13 @@ export const weatherWidget = defineComponent({
                 </DateField.Suffix>
               </DateField.Group>
               <DatePicker.Popover offset={8} placement="bottom end">
-                <Calendar>
+                <Calendar
+                  isDateUnavailable={(date) => {
+                    const iso = date.toString();
+
+                    return iso < minDate || iso > maxDate;
+                  }}
+                >
                   <Calendar.Header>
                     <Calendar.NavButton slot="previous" />
                     <Calendar.Heading />

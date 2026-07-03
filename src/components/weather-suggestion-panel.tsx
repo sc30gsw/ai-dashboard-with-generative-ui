@@ -18,17 +18,14 @@ import { useState } from "react";
 import { genuiLibrary } from "~/features/chat/genui/library";
 import { createChatToolProviderMap } from "~/features/chat/genui/tool-provider-map";
 import { resolveIsOpenUiLang } from "~/features/chat/lib/clarify-response";
+import { extractSuggestionOrderedIds } from "~/features/chat/lib/extract-suggestion-ids";
 import { chatUiState, messageText } from "~/features/chat/utils/message-parts";
 import { tasksCollection } from "~/features/tasks/collections/tasks-collection";
-import { getCurrentCoordinates } from "~/hooks/use-geolocation";
-import { applyReorderSuggestion, ReorderApplyError } from "~/lib/apply-reorder";
-import { extractSuggestionOrderedIds } from "~/lib/extract-suggestion-ids";
+import { applyReorderSuggestion, ReorderApplyError } from "~/features/tasks/utils/apply-reorder";
+import { APP_DEFAULT_TIMEZONE, todayRangeInTimeZone } from "~/lib/timezone";
+import { getCurrentCoordinates } from "~/utils/geolocation";
 
 const readToolMap = createChatToolProviderMap();
-
-function toDateOnlyString(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
 
 //? 座標はプロンプト文字列ではなく useChat の body（location）でサーバーへ渡す。
 //? サーバー側が get_weather のデフォルト座標として使う（§6.1 のフォールバックチェーン）。
@@ -39,11 +36,10 @@ function suggestionPrompt(selectedDate: string) {
 const weatherSuggestionTransport = new DefaultChatTransport({ api: "/api/chat" });
 
 export function WeatherSuggestionPanel() {
-  //? マウント時刻を一度だけ取得する（render のたびに Date.now() を呼ぶと React Compiler の
+  //? マウント時の日付を一度だけ取得する（render のたびに算出すると React Compiler の
   //? purity ルールに反するため、lazy initializer で一度だけ評価する）。
-  const [today] = useState(() => toDateOnlyString(new Date()));
-  const [maxDate] = useState(() =>
-    toDateOnlyString(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)),
+  const [{ end: maxDate, start: today }] = useState(() =>
+    todayRangeInTimeZone(APP_DEFAULT_TIMEZONE),
   );
 
   const [isApplying, setIsApplying] = useState(false);
