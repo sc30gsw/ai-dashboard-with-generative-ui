@@ -1,3 +1,4 @@
+import { Droplet, Umbrella } from "@gravity-ui/icons";
 import { Calendar, Card, Chip, DateField, DatePicker } from "@heroui/react";
 import {
   type ComponentRenderProps,
@@ -7,11 +8,16 @@ import {
 import { useState } from "react";
 import { z } from "zod";
 
-import { emojiForWeatherCode } from "~/features/weather/lib/wmo-codes";
+import { HolidayCalendarCell } from "~/components/holiday-calendar-cell";
+import { WeatherCodeIcon } from "~/features/weather/components/weather-code-icon";
 import { APP_DEFAULT_TIMEZONE, todayRangeInTimeZone } from "~/lib/timezone";
 
 const dailyWeatherPropsSchema = z.object({
   date: z.string().describe("ISO date (YYYY-MM-DD) for this forecast day"),
+  humidity: z
+    .number()
+    .optional()
+    .describe("Mean relative humidity for this day, as a percentage (0-100)"),
   precipitationProbability: z
     .number()
     .describe("Precipitation probability for this day, as a percentage (0-100)"),
@@ -21,12 +27,47 @@ const dailyWeatherPropsSchema = z.object({
   weatherCode: z.number().describe("WMO weather code for this day, used to choose a display icon"),
 });
 
-const weatherWidgetPropsSchema = z.object({
+//? OpenUI Lang は名前付き引数を持たず、呼び出しの位置引数を Zod スキーマの宣言順に
+//? そのまま props にバインドする。以前はここがフラットな多フィールド object だったため、
+//? モデルが `WeatherWidget(weather)` と1引数だけ渡すと weather オブジェクト全体が
+//? 先頭フィールド（daily）にバインドされ、残りは undefined になっていた
+//? （`(daily ?? []).map is not a function` の原因）。TaskList(tasks) / TaskSuggestion(items)
+//? と同じ「1引数 = 1つのラップ済みプロパティ」パターンに合わせ、weather を単一の
+//? ネストしたオブジェクトとして受け取る。
+const weatherReportPropsSchema = z.object({
   daily: z
     .array(dailyWeatherPropsSchema)
-    .optional()
     .describe("Up to 7 days of forecast data, in chronological order, for the 7-day strip"),
-  date: z.string().optional().describe("ISO date (YYYY-MM-DD) currently displayed in the header"),
+  date: z.string().describe("ISO date (YYYY-MM-DD) currently displayed in the header"),
+  humidity: z
+    .number()
+    .optional()
+    .describe("Mean relative humidity for the displayed date, as a percentage (0-100)"),
+  locationLabel: z.string().describe("Human-readable location name, e.g. '東京都'"),
+  precipitationProbability: z
+    .number()
+    .describe("Precipitation probability for the displayed date, as a percentage (0-100)"),
+  summary: z
+    .string()
+    .describe("Short weather summary for the displayed date, e.g. '晴れ' or '曇り'"),
+  tempMax: z.number().describe("Maximum temperature for the displayed date, in Celsius"),
+  tempMin: z.number().describe("Minimum temperature for the displayed date, in Celsius"),
+  weatherCode: z
+    .number()
+    .describe("WMO weather code for the displayed date, used to choose a display icon"),
+});
+
+//? OpenUI の Query() 解決パイプラインは JSON Schema の "format: date" ヒントを見て
+//? 文字列を実 Date インスタンスへ自動変換することがある。Date を直接 JSX の子要素として
+//? 描画すると React が例外を投げるため、表示直前に文字列へ正規化するヘルパー。
+function toDateLabel(value: string | Date | undefined) {
+  return value instanceof Date ? value.toISOString().slice(0, 10) : value;
+}
+
+const weatherWidgetPropsSchema = z.object({
+  weather: weatherReportPropsSchema
+    .optional()
+    .describe("Weather report object — pass the get_weather Query result as a single argument"),
   error: z
     .string()
     .nullable()
@@ -34,38 +75,24 @@ const weatherWidgetPropsSchema = z.object({
     .describe(
       "Error message when weather data could not be fetched. When present, render a compact error-only card instead of the normal temperature/summary/daily-strip display.",
     ),
-  locationLabel: z.string().optional().describe("Human-readable location name, e.g. '東京都'"),
-  precipitationProbability: z
-    .number()
-    .optional()
-    .describe("Precipitation probability for the displayed date, as a percentage (0-100)"),
-  summary: z
-    .string()
-    .optional()
-    .describe("Short weather summary for the displayed date, e.g. '晴れ' or '曇り'"),
-  tempMax: z.number().optional().describe("Maximum temperature for the displayed date, in Celsius"),
-  tempMin: z.number().optional().describe("Minimum temperature for the displayed date, in Celsius"),
-  weatherCode: z
-    .number()
-    .optional()
-    .describe("WMO weather code for the displayed date, used to choose a display icon"),
 });
 
 type WeatherWidgetProps = z.infer<typeof weatherWidgetPropsSchema>;
 
 export const weatherWidget = defineComponent({
   component: function WeatherWidgetView({ props }: ComponentRenderProps<WeatherWidgetProps>) {
+    const { error, weather } = props;
     const {
       daily,
       date,
-      error,
+      humidity,
       locationLabel,
       precipitationProbability,
       summary,
       tempMax,
       tempMin,
       weatherCode,
-    } = props;
+    } = weather ?? {};
     const triggerAction = useTriggerAction();
     //? マウント時の日付を一度だけ取得する（render のたびに算出すると React Compiler の
     //? purity ルールに反するため、lazy initializer で一度だけ評価する）。
@@ -92,7 +119,7 @@ export const weatherWidget = defineComponent({
           <Card.Title>{locationLabel}</Card.Title>
           <div className="flex items-center gap-2">
             <Chip color="default" size="sm" variant="secondary">
-              <Chip.Label>{date}</Chip.Label>
+              <Chip.Label>{toDateLabel(date)}</Chip.Label>
             </Chip>
             <DatePicker
               className="w-40"
@@ -131,7 +158,7 @@ export const weatherWidget = defineComponent({
                       {(day) => <Calendar.HeaderCell>{day}</Calendar.HeaderCell>}
                     </Calendar.GridHeader>
                     <Calendar.GridBody>
-                      {(gridDate) => <Calendar.Cell date={gridDate} />}
+                      {(gridDate) => <HolidayCalendarCell date={gridDate} />}
                     </Calendar.GridBody>
                   </Calendar.Grid>
                 </Calendar>
@@ -141,14 +168,24 @@ export const weatherWidget = defineComponent({
         </Card.Header>
         <Card.Content className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
-            <span aria-hidden="true" className="text-4xl">
-              {emojiForWeatherCode(weatherCode ?? -1)}
-            </span>
+            <WeatherCodeIcon className="size-10" weatherCode={weatherCode ?? -1} />
             <div>
               <p className="text-lg font-semibold">{summary}</p>
-              <p className="text-muted text-sm">
-                {tempMax}°C / {tempMin}°C・降水確率 {precipitationProbability}%
-              </p>
+              <div className="text-muted flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                <span>
+                  {tempMax}°C / {tempMin}°C
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Umbrella aria-hidden="true" className="size-3.5" />
+                  降水確率 {precipitationProbability}%
+                </span>
+                {humidity === undefined ? null : (
+                  <span className="inline-flex items-center gap-1">
+                    <Droplet aria-hidden="true" className="size-3.5" />
+                    湿度 {humidity}%
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-1">
@@ -157,10 +194,8 @@ export const weatherWidget = defineComponent({
                 className="flex min-w-20 flex-col items-center gap-1 rounded-md border p-2 text-center"
                 key={day.date}
               >
-                <p className="text-muted text-xs">{day.date}</p>
-                <span aria-hidden="true" className="text-2xl">
-                  {emojiForWeatherCode(day.weatherCode)}
-                </span>
+                <p className="text-muted text-xs">{toDateLabel(day.date)}</p>
+                <WeatherCodeIcon className="size-6" weatherCode={day.weatherCode} />
                 <p className="text-xs">{day.summary}</p>
                 <p className="text-xs font-medium">
                   {day.tempMax}° / {day.tempMin}°

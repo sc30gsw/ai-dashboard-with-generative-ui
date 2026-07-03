@@ -15,6 +15,7 @@ import { DefaultChatTransport } from "ai";
 import { Result } from "better-result";
 import { useState } from "react";
 
+import { HolidayCalendarCell } from "~/components/holiday-calendar-cell";
 import { genuiLibrary } from "~/features/chat/genui/library";
 import { createChatToolProviderMap } from "~/features/chat/genui/tool-provider-map";
 import { resolveIsOpenUiLang } from "~/features/chat/lib/clarify-response";
@@ -29,7 +30,12 @@ const readToolMap = createChatToolProviderMap();
 
 //? 座標はプロンプト文字列ではなく useChat の body（location）でサーバーへ渡す。
 //? サーバー側が get_weather のデフォルト座標として使う（§6.1 のフォールバックチェーン）。
-function suggestionPrompt(selectedDate: string) {
+//? 位置情報の有無でプロンプトを出し分け、天気なしへの縮退を決定的にする（LLMの自己判断に委ねない）。
+function suggestionPrompt(selectedDate: string, hasLocation: boolean) {
+  if (!hasLocation) {
+    return `${selectedDate} のタスクの順序を、天気は考慮せずに優先度と期日をもとに提案してください。TaskSuggestion は weather 引数なし（items のみ）で出力してください。`;
+  }
+
   return `${selectedDate} の天気をふまえて、現在地のタスクの順序を提案してください。`;
 }
 
@@ -56,8 +62,16 @@ export function WeatherSuggestionPanel() {
   async function handleSuggest() {
     const coordinates = await getCurrentCoordinates();
 
+    //? 座標なしでも送信は続行する（プロンプト側が天気なしの順序提案へ縮退する）。
+    //? パネルには自由入力欄がないため、モデルに現在地を聞き返させると行き止まりになる。
+    if (!coordinates) {
+      toast.warning(
+        "位置情報を取得できませんでした。天気を考慮しない順序で提案します（ブラウザの位置情報許可を確認してください）。",
+      );
+    }
+
     sendMessage(
-      { text: suggestionPrompt(selectedDate) },
+      { text: suggestionPrompt(selectedDate, coordinates != null) },
       {
         body: {
           location: coordinates ?? undefined,
@@ -129,7 +143,7 @@ export function WeatherSuggestionPanel() {
                     {(day) => <Calendar.HeaderCell>{day}</Calendar.HeaderCell>}
                   </Calendar.GridHeader>
                   <Calendar.GridBody>
-                    {(gridDate) => <Calendar.Cell date={gridDate} />}
+                    {(gridDate) => <HolidayCalendarCell date={gridDate} />}
                   </Calendar.GridBody>
                 </Calendar.Grid>
               </Calendar>
@@ -192,7 +206,20 @@ export function WeatherSuggestionPanel() {
             <p className="text-sm text-red-600" role="alert">
               {error.message || "提案の取得に失敗しました。"}
             </p>
-            <Button onPress={() => regenerate()} size="sm" variant="secondary">
+            <Button
+              onPress={async () => {
+                const coordinates = await getCurrentCoordinates();
+
+                regenerate({
+                  body: {
+                    location: coordinates ?? undefined,
+                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                  },
+                });
+              }}
+              size="sm"
+              variant="secondary"
+            >
               再試行
             </Button>
           </div>
