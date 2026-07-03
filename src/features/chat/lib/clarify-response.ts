@@ -9,7 +9,7 @@ export function extractOpenUILang(text: string) {
     return null;
   }
 
-  const fenced = trimmed.match(/```(?:openui(?:-lang)?|openui-lang)?\s*([\s\S]*?)```/i);
+  const fenced = trimmed.match(/```(?:openui(?:-lang)?)?\s*([\s\S]*?)```/i);
 
   if (fenced?.[1]?.includes("root =")) {
     return fenced[1].trim();

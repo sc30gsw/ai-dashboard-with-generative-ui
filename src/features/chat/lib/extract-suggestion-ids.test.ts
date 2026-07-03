@@ -34,3 +34,13 @@ test("ignores ids that appear in an unrelated node following a balanced TaskSugg
 
   expect(extractSuggestionOrderedIds(text)).toEqual(["t1"]);
 });
+
+test("ignores a literal id: pattern inside a reason string value", () => {
+  const text = [
+    "root = TaskSuggestion(items=[",
+    '{id: "t1", title: "報告書を作成", priority: "medium", location: "indoor", reason: "note id: \\"decoy\\" here"}',
+    "])",
+  ].join("\n");
+
+  expect(extractSuggestionOrderedIds(text)).toEqual(["t1"]);
+});

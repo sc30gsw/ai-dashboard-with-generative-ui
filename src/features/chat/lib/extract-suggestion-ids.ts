@@ -39,6 +39,45 @@ function findBalancedSpanEnd(text: string, openParenIndex: number) {
   return text.length;
 }
 
+//? suggestionText を文字列リテラルを意識して走査し、リテラルの外側にある `id:` キーのみを
+//? 対象にする。reason/title などのフィールド値に `id: "x"` という文字列が含まれていても、
+//? それは文字列内部（inString）なので誤検出しない。
+function extractIdKeyValues(text: string) {
+  const ids: string[] = [];
+  let inString = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+
+    if (inString) {
+      if (char === "\\") {
+        i++; // skip escaped character
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+
+    const previousChar = text[i - 1];
+    const isKeyBoundary = previousChar === undefined || !/\w/.test(previousChar);
+
+    if (isKeyBoundary && char === "i" && text[i + 1] === "d") {
+      const match = text.slice(i + 2).match(/^\s*:\s*"([^"]*)"/);
+
+      if (match?.[1]) {
+        ids.push(match[1]);
+      }
+    }
+  }
+
+  return ids;
+}
+
 export function extractSuggestionOrderedIds(openUiLangText: string) {
   const callIndex = openUiLangText.indexOf("TaskSuggestion(");
 
@@ -49,7 +88,6 @@ export function extractSuggestionOrderedIds(openUiLangText: string) {
   const openParenIndex = callIndex + "TaskSuggestion".length;
   const spanEnd = findBalancedSpanEnd(openUiLangText, openParenIndex);
   const suggestionText = openUiLangText.slice(openParenIndex, spanEnd);
-  const idMatches = suggestionText.matchAll(/\bid\s*:\s*"([^"]*)"/g);
 
-  return Array.from(idMatches, (match) => match[1] ?? "").filter((id) => id.length > 0);
+  return extractIdKeyValues(suggestionText);
 }
