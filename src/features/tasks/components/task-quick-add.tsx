@@ -59,6 +59,7 @@ export function TaskQuickAdd() {
   });
 
   return (
+    // oxlint-disable-next-line react-doctor/no-prevent-default -- TanStack Form + client-side optimistic insert (TanStack DB); no server action exists, and no-JS submission is not a real fallback path for this optimistic-update flow.
     <form
       className="flex flex-col gap-3"
       onSubmit={(event) => {

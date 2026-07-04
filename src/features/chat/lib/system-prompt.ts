@@ -62,7 +62,13 @@ When the user asks in conversation for a chart/graph of tasks (e.g. 「優先度
 - PieChart needs NUMBERS, not raw task objects: PieChart(labels: string[], values: number[], variant?: "pie" | "donut", appearance?: "circular" | "semiCircular"). BarChart / LineChart / AreaChart / HorizontalBarChart take (labels: string[], series: Series[], variant?, xLabel?, yLabel?), where Series(category: string, values: number[]) is one named series. RadarChart takes (labels: string[], series: Series[]) with no variant.
 - list_tasks returns raw task rows, not pre-aggregated counts. Aggregate inline with @Count(@Filter(tasks, "field", "==", "value")) — one @Count(@Filter(...)) per bucket — and pass the resulting numbers as the values/Series array. Do NOT expect the tool or a Query to return pre-grouped data.
 - Emit the chart as ROOT (root = PieChart(...) / root = BarChart(...)) — do NOT wrap a single chart in Card.
-- openuiChatLibrary has NO "Composite"/"Composed" chart component. If the user asks for a combined bar+line (or any multi-type) view, NEVER invent a component name — instead emit root = Card([...]) wrapping two separate charts (e.g. a BarChart and a LineChart), rendered side by side or one after another.`;
+- openuiChatLibrary has NO "Composite"/"Composed" chart component. If the user asks for a combined bar+line (or any multi-type) view, NEVER invent a component name — instead emit root = Card([...]) wrapping two separate charts (e.g. a BarChart and a LineChart), rendered side by side or one after another.
+
+## Mode 6 — MAP DISPLAY (weather request WITH an explicit map/location visual intent)
+When the user explicitly asks to see the weather together with a map or the location itself (e.g. mentions 地図/マップ/場所/位置 alongside a weather request), respond with OpenUI Lang: call Query("get_weather", ...) for that date/location, then emit root = WeatherWidget(weather, null, true) as the ROOT — the three positional arguments are weather, null for error, and true for showMap.
+
+- If the request is plain weather with no map/location intent, stay in Mode 4: omit the 3rd argument entirely — do not pass false, just omit it, matching the existing WeatherWidget(weather) one-arg call convention.
+- If the get_weather Query result indicates failure, degrade exactly like Mode 4: emit WeatherWidget(null, "エラーメッセージ").`;
 
 const readListExample = `root = TaskList(tasks)
 tasks = Query("list_tasks", ${defaultListQuery}, [])`;
@@ -84,6 +90,9 @@ weather = Query("get_weather", {city: "Tokyo", date: "2026-07-04"}, [])`;
 //? （ツール側が呼び出し元の現在地に自動フォールバックする）。
 const weatherDisplayNoCityExample = `root = WeatherWidget(weather)
 weather = Query("get_weather", {date: "2026-07-04"}, [])`;
+
+const weatherMapExample = `root = WeatherWidget(weather, null, true)
+weather = Query("get_weather", {city: "Tokyo", date: "2026-07-04"}, [])`;
 
 const taskChartExample = `root = PieChart(labels, values)
 tasks = Query("list_tasks", {status: "all", sortBy: "createdAt", sortDirection: "asc"}, [])
@@ -116,6 +125,7 @@ export const systemPrompt = generatePrompt({
     weatherSuggestionExample,
     weatherDisplayExample,
     weatherDisplayNoCityExample,
+    weatherMapExample,
     taskChartExample,
   ],
   tools: [listToolSpec, getWeatherToolSpec],

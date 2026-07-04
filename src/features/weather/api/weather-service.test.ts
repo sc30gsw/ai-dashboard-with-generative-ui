@@ -129,6 +129,55 @@ test("coordinates-only input falls back to a coordinate label when reverse geoco
   }
 });
 
+test("falls back to suffixed candidates when a short Japanese city name returns no results", async () => {
+  const fetchMock = vi.mocked(fetch);
+  fetchMock
+    //? 「大阪」は Open-Meteo geocoding（3文字未満は完全一致のみ）で0件になる
+    .mockResolvedValueOnce(jsonResponse({}))
+    //? フォールバック候補「大阪市」でヒット
+    .mockResolvedValueOnce(
+      jsonResponse({
+        results: [{ latitude: 34.69379, longitude: 135.50107, name: "大阪市" }],
+      }),
+    )
+    .mockResolvedValueOnce(
+      jsonResponse({
+        daily: {
+          precipitation_probability_max: [10],
+          relative_humidity_2m_mean: [55],
+          temperature_2m_max: [30],
+          temperature_2m_min: [22],
+          time: ["2026-07-03"],
+          weather_code: [0],
+        },
+      }),
+    );
+
+  const result = await WeatherService.get({ city: "大阪", date: "2026-07-03" });
+
+  expect(Result.isOk(result)).toBe(true);
+
+  if (Result.isOk(result)) {
+    expect(result.value.locationLabel).toBe("大阪市");
+    expect(result.value.latitude).toBe(34.69379);
+  }
+});
+
+test("returns geocoding_failed error when all fallback candidates return no results", async () => {
+  const fetchMock = vi.mocked(fetch);
+  //? 元の地名 + 市/都/府/県 の全5候補が0件
+  fetchMock.mockResolvedValue(jsonResponse({}));
+
+  const result = await WeatherService.get({ city: "存在しない地名", date: "2026-07-03" });
+
+  expect(Result.isError(result)).toBe(true);
+
+  if (Result.isError(result)) {
+    expect(result.error.reason).toBe("geocoding_failed");
+    expect(fetchMock).toHaveBeenCalledTimes(5);
+  }
+});
+
 test("returns geocoding_failed error when the geocoding request fails", async () => {
   const fetchMock = vi.mocked(fetch);
   fetchMock.mockResolvedValueOnce(jsonResponse({}, false));
@@ -156,6 +205,71 @@ test("returns geocoding_failed error when the geocoding response has an unexpect
 
   if (Result.isError(result)) {
     expect(result.error.reason).toBe("geocoding_failed");
+  }
+});
+
+test("falls back to wttr.in when the Open-Meteo forecast request fails", async () => {
+  const fetchMock = vi.mocked(fetch);
+  fetchMock
+    .mockResolvedValueOnce(
+      jsonResponse({
+        results: [{ latitude: 35.6895, longitude: 139.6917, name: "東京都" }],
+      }),
+    )
+    //? Open-Meteo forecast がネットワーク障害で失敗
+    .mockRejectedValueOnce(new Error("network down"))
+    //? wttr.in フォールバック（数値は文字列で返る）
+    .mockResolvedValueOnce(
+      jsonResponse({
+        weather: [
+          {
+            date: "2026-07-03",
+            hourly: [
+              { chanceofrain: "20", humidity: "60", weatherCode: "116" },
+              { chanceofrain: "50", humidity: "70", weatherCode: "353" },
+            ],
+            maxtempC: "26",
+            mintempC: "22",
+          },
+        ],
+      }),
+    );
+
+  const result = await WeatherService.get({ city: "東京都", date: "2026-07-03" });
+
+  expect(Result.isOk(result)).toBe(true);
+
+  if (Result.isOk(result)) {
+    expect(result.value.locationLabel).toBe("東京都");
+    expect(result.value.tempMax).toBe(26);
+    expect(result.value.tempMin).toBe(22);
+    //? hourly の最大 chanceofrain
+    expect(result.value.precipitationProbability).toBe(50);
+    //? hourly の平均 humidity
+    expect(result.value.humidity).toBe(65);
+    //? 正午枠が無い場合は先頭枠の WWO 116 → WMO 2
+    expect(result.value.weatherCode).toBe(2);
+    expect(result.value.summary).toBe("晴れ");
+  }
+});
+
+test("returns forecast_failed error when both forecast providers fail", async () => {
+  const fetchMock = vi.mocked(fetch);
+  fetchMock
+    .mockResolvedValueOnce(
+      jsonResponse({
+        results: [{ latitude: 35.6895, longitude: 139.6917, name: "東京都" }],
+      }),
+    )
+    .mockRejectedValueOnce(new Error("network down"))
+    .mockRejectedValueOnce(new Error("network down"));
+
+  const result = await WeatherService.get({ city: "東京都", date: "2026-07-03" });
+
+  expect(Result.isError(result)).toBe(true);
+
+  if (Result.isError(result)) {
+    expect(result.error.reason).toBe("forecast_failed");
   }
 });
 

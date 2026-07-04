@@ -27,3 +27,7 @@ local.db-wal
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# E2E automation artifacts
+.playwright-mcp/
+/*.png

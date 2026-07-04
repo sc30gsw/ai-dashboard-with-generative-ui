@@ -238,7 +238,7 @@
       "description": "Task list with a built-in search box, priority filter, sort control, and priority/done status chips. Use this instead of Table to show, list, or filter tasks."
     },
     "WeatherWidget": {
-      "signature": "WeatherWidget(weather?: {daily: {date: string, humidity?: number, precipitationProbability: number, summary: string, tempMax: number, tempMin: number, weatherCode: number}[], date: string, humidity?: number, locationLabel: string, precipitationProbability: number, summary: string, tempMax: number, tempMin: number, weatherCode: number}, error?: string)",
+      "signature": "WeatherWidget(weather?: {daily: {date: string, humidity?: number, precipitationProbability: number, summary: string, tempMax: number, tempMin: number, weatherCode: number}[], date: string, humidity?: number, latitude?: number, locationLabel: string, longitude?: number, precipitationProbability: number, summary: string, tempMax: number, tempMin: number, weatherCode: number}, error?: string, showMap?: boolean)",
       "description": "Weather forecast card for a location: header with location and date, a headline summary with current temperature range and precipitation probability, a date picker, and a horizontal 7-day forecast strip. Use this instead of Card/TextContent to display weather data."
     },
     "TaskSuggestion": {

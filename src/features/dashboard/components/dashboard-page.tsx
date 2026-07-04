@@ -14,6 +14,7 @@ import { TASK_PRIORITIES, type TaskPriority } from "~/features/tasks/api/task-mo
 import { PriorityChip } from "~/features/tasks/components/priority-chip";
 import { TaskQuickAdd } from "~/features/tasks/components/task-quick-add";
 import { useAllTasksQuery } from "~/features/tasks/hooks/use-filtered-tasks-query";
+import { CurrentLocationMapCard } from "~/features/weather/components/current-location-map-card";
 
 type PriorityChartDatum = {
   count: number;
@@ -341,6 +342,8 @@ export function DashboardPage() {
       </div>
 
       <WeatherSuggestionPanel />
+
+      <CurrentLocationMapCard />
 
       <Card>
         <Card.Header>
