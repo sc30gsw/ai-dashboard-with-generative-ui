@@ -1,6 +1,21 @@
 @import "tailwindcss";
 @import "@heroui/styles";
 
+/* HeroUI useTheme() は <html> に .dark/.light class を付ける（テーマ切替機能）。
+   dark: ユーティリティを OS 設定ではなくその class に連動させる。 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* mapcn (MapLibre) popup が bg-popover/text-popover-foreground を使うが、
+   このプロジェクトは shadcn の --color-popover トークンを登録していない
+   （Tailwind v4 は @theme で --color-* を登録しない限りそのユーティリティを
+   一切生成しない — 単に :root に --popover を書いても効果がない）。
+   既存の --surface/--foreground にエイリアスして登録する。inline なので
+   .dark 側で再定義された --surface を追う（固定値でスナップショットしない）。 */
+@theme inline {
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--foreground);
+}
+
 @layer base {
   :root {
     --accent: oklch(0.58 0.14 250);
@@ -13,5 +28,40 @@
     --muted: oklch(0.52 0.02 250);
     --link: var(--accent);
     --focus: var(--accent);
+  }
+
+  /* ダークテーマ。HeroUI のダークトークンは layer(theme) にあり、レイヤー順
+     theme < base のためこの base 側の定義が確実に勝つ。 */
+  .dark,
+  [data-theme="dark"] {
+    --accent: oklch(0.7 0.14 250);
+    --accent-foreground: oklch(0.18 0.02 250);
+    --background: oklch(0.17 0.01 250);
+    --surface: oklch(0.21 0.012 250);
+    --surface-secondary: oklch(0.26 0.014 250);
+    --border: oklch(0.31 0.015 250);
+    --separator: oklch(0.29 0.012 250);
+    --muted: oklch(0.72 0.03 250);
+    --link: var(--accent);
+    --focus: var(--accent);
+  }
+
+  /* mapcn (MapLibre) popup overrides — see docs/weather-map-genui-spec.md §4.1 */
+  .maplibregl-popup-content {
+    @apply rounded-none! bg-transparent! p-0! shadow-none!;
+  }
+
+  .maplibregl-popup-tip {
+    @apply hidden!;
+  }
+
+  /* テーマ切替の円形リビール（View Transitions）。既定のクロスフェードを止め、
+     見た目のクリッピングは theme-switcher.tsx が Web Animations API
+     （Element.animate + pseudoElement）で直接描く。CSS 側は無効化のみ担当する
+     ため、レイヤー順や !important の衝突を気にする必要がない。
+     prefers-reduced-motion の分岐も呼び出し側（JS）で完結させている。 */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
   }
 }

@@ -14,6 +14,7 @@ export const ChatInputForm = withForm({
           </p>
         ) : null}
 
+        {/* oxlint-disable-next-line react-doctor/no-prevent-default -- TanStack Form client-side validation pattern (documented as the CORRECT pattern in typescript/zod-validation.md); no server action exists, and the chat UI already requires JS for streaming (useChat), so no-JS submission is not a real fallback path. */}
         <form
           aria-label="Send chat message"
           onSubmit={(event) => {

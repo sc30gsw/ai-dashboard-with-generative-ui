@@ -7,6 +7,7 @@ import { Suspense, lazy } from "react";
 
 import "@openuidev/react-ui/index.css";
 import { queryClient } from "~/lib/query-client";
+import themeInitScriptUrl from "~/theme-init.js?url";
 
 import appCss from "~/styles.css?url";
 
@@ -34,9 +35,14 @@ export const Route = createRootRoute({
 
 function RootComponent() {
   return (
-    <html lang="ja">
+    <html lang="ja" suppressHydrationWarning>
       <head>
         <HeadContent />
+        {/* FOUC 防止: 描画前に localStorage のテーマ意図から .dark/.light を <html> に適用。
+            外部静的ファイル(~/theme-init.js)への参照のみで dangerouslySetInnerHTML sink を使わない。
+            defer/async を付けないのは意図的: body 描画前に同期実行を終えないと FOUC 防止の意味が無くなる。 */}
+        {/* oxlint-disable-next-line react-doctor/no-undeferred-third-party, react-doctor/rendering-script-defer-async -- first-party same-origin asset (~/theme-init.js), not third-party; must block synchronously before first paint to prevent FOUC, defer/async would run this after body render. */}
+        <script src={themeInitScriptUrl} />
       </head>
       <body>
         <QueryClientProvider client={queryClient}>

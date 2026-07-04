@@ -9,6 +9,7 @@ import { useState } from "react";
 import { z } from "zod";
 
 import { HolidayCalendarCell } from "~/components/holiday-calendar-cell";
+import { LocationMapView } from "~/features/weather/components/location-map-view";
 import { WeatherCodeIcon } from "~/features/weather/components/weather-code-icon";
 import { APP_DEFAULT_TIMEZONE, todayRangeInTimeZone } from "~/lib/timezone";
 
@@ -43,7 +44,19 @@ const weatherReportPropsSchema = z.object({
     .number()
     .optional()
     .describe("Mean relative humidity for the displayed date, as a percentage (0-100)"),
+  latitude: z
+    .number()
+    .optional()
+    .describe(
+      "Resolved latitude for the location, if available — used to render an inline map when showMap is true",
+    ),
   locationLabel: z.string().describe("Human-readable location name, e.g. '東京都'"),
+  longitude: z
+    .number()
+    .optional()
+    .describe(
+      "Resolved longitude for the location, if available — used to render an inline map when showMap is true",
+    ),
   precipitationProbability: z
     .number()
     .describe("Precipitation probability for the displayed date, as a percentage (0-100)"),
@@ -56,6 +69,8 @@ const weatherReportPropsSchema = z.object({
     .number()
     .describe("WMO weather code for the displayed date, used to choose a display icon"),
 });
+
+export type WeatherReportProps = z.infer<typeof weatherReportPropsSchema>;
 
 //? OpenUI の Query() 解決パイプラインは JSON Schema の "format: date" ヒントを見て
 //? 文字列を実 Date インスタンスへ自動変換することがある。Date を直接 JSX の子要素として
@@ -75,18 +90,26 @@ const weatherWidgetPropsSchema = z.object({
     .describe(
       "Error message when weather data could not be fetched. When present, render a compact error-only card instead of the normal temperature/summary/daily-strip display.",
     ),
+  showMap: z
+    .boolean()
+    .optional()
+    .describe(
+      "Set true to render an inline map below the 7-day forecast strip, showing the location's coordinates with a marker. Only set this when the user explicitly asked to see a map or the location visually — never by default.",
+    ),
 });
 
 type WeatherWidgetProps = z.infer<typeof weatherWidgetPropsSchema>;
 
 export const weatherWidget = defineComponent({
   component: function WeatherWidgetView({ props }: ComponentRenderProps<WeatherWidgetProps>) {
-    const { error, weather } = props;
+    const { error, showMap, weather } = props;
     const {
       daily,
       date,
       humidity,
+      latitude,
       locationLabel,
+      longitude,
       precipitationProbability,
       summary,
       tempMax,
@@ -112,6 +135,13 @@ export const weatherWidget = defineComponent({
         </Card>
       );
     }
+
+    const isMapVisible =
+      showMap === true &&
+      typeof latitude === "number" &&
+      Number.isFinite(latitude) &&
+      typeof longitude === "number" &&
+      Number.isFinite(longitude);
 
     return (
       <Card>
@@ -203,6 +233,27 @@ export const weatherWidget = defineComponent({
               </div>
             ))}
           </div>
+          {isMapVisible ? (
+            <LocationMapView
+              label={locationLabel ?? ""}
+              latitude={latitude}
+              longitude={longitude}
+              popupContent={
+                <div className="space-y-1">
+                  <p className="font-semibold">
+                    {locationLabel} / {toDateLabel(date)}
+                  </p>
+                  <p className="text-sm">
+                    {tempMax}°C / {tempMin}°C
+                    {humidity === undefined ? null : ` ・湿度 ${humidity}%`}
+                  </p>
+                  {precipitationProbability === undefined ? null : (
+                    <p className="text-sm">降水確率 {precipitationProbability}%</p>
+                  )}
+                </div>
+              }
+            />
+          ) : null}
         </Card.Content>
       </Card>
     );

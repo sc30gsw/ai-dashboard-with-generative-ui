@@ -2,6 +2,7 @@ import { Result, TaggedError } from "better-result";
 import { z } from "zod";
 
 import { labelForWeatherCode } from "~/features/weather/lib/wmo-codes";
+import { wmoCodeForWwoCode } from "~/features/weather/lib/wwo-codes";
 import type { GetWeatherInput, WeatherReport } from "~/features/weather/schemas/weather-schema";
 
 export class WeatherError extends TaggedError("WeatherError")<{
@@ -85,24 +86,15 @@ async function reverseGeocodeLabel(latitude: number, longitude: number) {
   }
 }
 
-async function resolveLocation(input: GetWeatherInput) {
-  if (input.latitude !== undefined && input.longitude !== undefined) {
-    const locationLabel =
-      input.city ??
-      (await reverseGeocodeLabel(input.latitude, input.longitude)) ??
-      `${input.latitude}, ${input.longitude}`;
+//? Open-Meteo geocoding は3文字未満の地名を完全一致でしか検索しない（「大阪」「東京」が0件になる）。
+//? 0件のときは行政区分サフィックスを付けた候補で再検索する。
+const GEOCODING_FALLBACK_SUFFIXES = ["市", "都", "府", "県"] as const;
 
-    return {
-      latitude: input.latitude,
-      locationLabel,
-      longitude: input.longitude,
-    };
-  }
-
+async function searchCity(name: string) {
   const params = new URLSearchParams({
     count: "1",
     language: "ja",
-    name: input.city ?? "",
+    name,
   });
   const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?${params}`, {
     signal: AbortSignal.timeout(10_000),
@@ -121,20 +113,43 @@ async function resolveLocation(input: GetWeatherInput) {
     throw new GeocodingFetchError("Geocoding response has an unexpected shape");
   }
 
-  const result = parsed.data.results?.[0];
-
-  if (!result) {
-    throw new GeocodingFetchError("No geocoding results found");
-  }
-
-  return {
-    latitude: result.latitude,
-    locationLabel: result.name,
-    longitude: result.longitude,
-  };
+  return parsed.data.results?.[0];
 }
 
-async function fetchForecast(latitude: number, longitude: number) {
+async function resolveLocation(input: GetWeatherInput) {
+  if (input.latitude !== undefined && input.longitude !== undefined) {
+    const locationLabel =
+      input.city ??
+      (await reverseGeocodeLabel(input.latitude, input.longitude)) ??
+      `${input.latitude}, ${input.longitude}`;
+
+    return {
+      latitude: input.latitude,
+      locationLabel,
+      longitude: input.longitude,
+    };
+  }
+
+  const city = input.city ?? "";
+  const candidates = [city, ...GEOCODING_FALLBACK_SUFFIXES.map((suffix) => `${city}${suffix}`)];
+
+  for (const name of candidates) {
+    // oxlint-disable-next-line react-doctor/async-await-in-loop -- sequential fallback search with early-exit on first match; candidates are tried in priority order, not independent, so Promise.all would fire extra unnecessary geocoding requests and change the result-priority semantics.
+    const result = await searchCity(name);
+
+    if (result) {
+      return {
+        latitude: result.latitude,
+        locationLabel: result.name,
+        longitude: result.longitude,
+      };
+    }
+  }
+
+  throw new GeocodingFetchError("No geocoding results found");
+}
+
+async function fetchOpenMeteoForecast(latitude: number, longitude: number) {
   const params = new URLSearchParams({
     daily:
       "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,relative_humidity_2m_mean",
@@ -161,6 +176,78 @@ async function fetchForecast(latitude: number, longitude: number) {
   }
 
   return parsed.data;
+}
+
+//? wttr.in の j1 レスポンス。数値がすべて文字列で返るため coerce で吸収する。
+const WttrResponseSchema = z.object({
+  weather: z.array(
+    z.object({
+      date: z.string(),
+      hourly: z.array(
+        z.object({
+          chanceofrain: z.coerce.number(),
+          humidity: z.coerce.number(),
+          weatherCode: z.coerce.number(),
+        }),
+      ),
+      maxtempC: z.coerce.number(),
+      mintempC: z.coerce.number(),
+    }),
+  ),
+});
+
+//? Open-Meteo forecast ホスト障害時のフォールバック（2026-07-04 の全面停止で追加）。
+//? キー不要の wttr.in（3日分・3時間刻み hourly）を既存の ForecastResponse 形へ正規化し、
+//? buildReport 以降のパイプラインを共通のまま使う。WWO コードは WMO へ変換する。
+async function fetchWttrForecast(latitude: number, longitude: number): Promise<ForecastResponse> {
+  const res = await fetch(`https://wttr.in/${latitude},${longitude}?format=j1`, {
+    signal: AbortSignal.timeout(10_000),
+  });
+
+  if (!res.ok) {
+    throw new ForecastFetchError("Fallback forecast request failed");
+  }
+
+  const json = await res.json().catch(() => {
+    throw new ForecastFetchError("Fallback forecast response is not valid JSON");
+  });
+  const parsed = WttrResponseSchema.safeParse(json);
+
+  if (!parsed.success) {
+    throw new ForecastFetchError("Fallback forecast response has an unexpected shape");
+  }
+
+  const days = parsed.data.weather;
+
+  return {
+    daily: {
+      precipitation_probability_max: days.map((day) =>
+        Math.max(0, ...day.hourly.map((hour) => hour.chanceofrain)),
+      ),
+      relative_humidity_2m_mean: days.map((day) =>
+        day.hourly.length === 0
+          ? null
+          : Math.round(
+              day.hourly.reduce((sum, hour) => sum + hour.humidity, 0) / day.hourly.length,
+            ),
+      ),
+      temperature_2m_max: days.map((day) => day.maxtempC),
+      temperature_2m_min: days.map((day) => day.mintempC),
+      time: days.map((day) => day.date),
+      //? 3時間刻み8枠の正午枠（index 4）を代表値にする。
+      weather_code: days.map((day) =>
+        wmoCodeForWwoCode((day.hourly[4] ?? day.hourly[0])?.weatherCode ?? 113),
+      ),
+    },
+  };
+}
+
+async function fetchForecast(latitude: number, longitude: number) {
+  try {
+    return await fetchOpenMeteoForecast(latitude, longitude);
+  } catch {
+    return fetchWttrForecast(latitude, longitude);
+  }
 }
 
 function at<T>(values: T[], index: number) {
