@@ -55,6 +55,18 @@
     @apply hidden!;
   }
 
+  /* HeroUI (@heroui/styles) は @layer base で :root { view-transition-name: none }
+     を設定し、UA デフォルトの root スナップショットを無効化している（Toast の
+     view transition でページ全体が巻き込まれないようにするため）。このままだと
+     ::view-transition-new(root) 擬似要素が生成されず、theme-switcher.tsx の
+     クリップアニメーションが存在しない対象に空撃ちして transition が即終了する。
+     同一レイヤー・同一詳細度の後勝ちで root 名を復元する。副作用: Toast の
+     transition 中も root スナップショットが作られるが、下の animation: none で
+     静止するため見た目は変わらない。 */
+  :root {
+    view-transition-name: root;
+  }
+
   /* テーマ切替の円形リビール（View Transitions）。既定のクロスフェードを止め、
      見た目のクリッピングは theme-switcher.tsx が Web Animations API
      （Element.animate + pseudoElement）で直接描く。CSS 側は無効化のみ担当する
