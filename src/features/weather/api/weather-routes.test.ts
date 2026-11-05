@@ -18,6 +18,7 @@ beforeEach(() => {
 });
 
 const INTERNAL_MESSAGE = "Failed to fetch weather (INTERNAL DETAIL)";
+const validForecastDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
 test("error branch returns a generic message, not the internal WeatherError message", async () => {
   const { weatherRoutes } = await import("~/features/weather/api/weather-routes");
@@ -25,7 +26,7 @@ test("error branch returns a generic message, not the internal WeatherError mess
   getResult.current = Result.err({ message: INTERNAL_MESSAGE });
 
   const response = await weatherRoutes.handle(
-    new Request("http://localhost/weather?city=Tokyo&date=2026-07-03"),
+    new Request(`http://localhost/weather?city=Tokyo&date=${validForecastDate}`),
   );
   const data = await response.json();
 
@@ -40,7 +41,7 @@ test("success branch returns a 200 with the report for a valid city and date que
 
   const report = {
     daily: [],
-    date: "2026-07-03",
+    date: validForecastDate,
     humidity: 55,
     locationLabel: "Tokyo",
     precipitationProbability: 10,
@@ -52,7 +53,7 @@ test("success branch returns a 200 with the report for a valid city and date que
   getResult.current = Result.ok(report);
 
   const response = await weatherRoutes.handle(
-    new Request("http://localhost/weather?city=Tokyo&date=2026-07-03"),
+    new Request(`http://localhost/weather?city=Tokyo&date=${validForecastDate}`),
   );
   const data = await response.json();
 
@@ -66,7 +67,7 @@ test("success branch coerces latitude/longitude query strings to numbers", async
 
   const report = {
     daily: [],
-    date: "2026-07-03",
+    date: validForecastDate,
     humidity: 55,
     locationLabel: "35.68,139.77",
     precipitationProbability: 10,
@@ -78,7 +79,9 @@ test("success branch coerces latitude/longitude query strings to numbers", async
   getResult.current = Result.ok(report);
 
   const response = await weatherRoutes.handle(
-    new Request("http://localhost/weather?latitude=35.68&longitude=139.77&date=2026-07-03"),
+    new Request(
+      `http://localhost/weather?latitude=35.68&longitude=139.77&date=${validForecastDate}`,
+    ),
   );
   const data = await response.json();
 
